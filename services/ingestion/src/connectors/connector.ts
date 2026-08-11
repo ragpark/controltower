@@ -37,6 +37,18 @@ export class ConnectorNotImplementedError extends Error {
   }
 }
 
+/**
+ * The file extensions a connector accepts, parsed from its `uploadAccept`.
+ * The upload endpoint validates against this so the extensions offered in the
+ * browser and the ones the server allows cannot drift apart.
+ */
+export function allowedUploadExtensions(accept?: string): string[] {
+  return (accept ?? '')
+    .split(',')
+    .map((part) => part.trim().toLowerCase())
+    .filter((part) => part.startsWith('.'));
+}
+
 export function connectorSetting(config: SourceConfig, key: string): string | undefined {
   const value = config.connector?.[key];
   return typeof value === 'string' && value.trim() !== '' ? value : undefined;

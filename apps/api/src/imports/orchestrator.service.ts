@@ -1,7 +1,8 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import {
+  allowedUploadExtensions,
   changedFields,
   ConnectorRegistry,
   createDefaultConnectorRegistry,
@@ -82,6 +83,23 @@ export class OrchestratorService {
   async importUpload(sourceId: string, file: FetchedFile, actor: string): Promise<ImportRun> {
     const source = await this.prisma.source.findUnique({ where: { id: sourceId } });
     if (!source) throw new NotFoundException('Source not found');
+
+    // Validate against what the connector itself advertises, so the extensions
+    // offered in the browser and those the server accepts cannot disagree.
+    const connector = this.connectors.get(source.type as SourceType);
+    if (!connector.supportsUpload) {
+      throw new BadRequestException(
+        `Source "${source.name}" does not accept uploads — it pulls data on a schedule.`,
+      );
+    }
+    const allowed = allowedUploadExtensions(connector.uploadAccept);
+    const filename = file.filename.toLowerCase();
+    if (allowed.length > 0 && !allowed.some((ext) => filename.endsWith(ext))) {
+      throw new BadRequestException(
+        `"${file.filename}" is not accepted by this source. Allowed: ${allowed.join(', ')}`,
+      );
+    }
+
     return this.importFile(source, file, actor);
   }
 

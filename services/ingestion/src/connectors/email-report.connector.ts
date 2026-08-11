@@ -13,7 +13,7 @@ export class EmailFailureReportConnector implements SourceConnector {
   readonly supportsUpload = true;
   // The email body saved as plain text; .csv accepted only because some mail
   // clients save with that extension.
-  readonly uploadAccept = '.txt,.text,.log,.csv,text/plain,text/csv';
+  readonly uploadAccept = '.txt,.csv,text/plain,text/csv';
   readonly uploadLabel = 'report';
   readonly configHints = {
     note: 'Paste or upload the email body as a .txt/.csv file. No mapping is required — the report layout is fixed.',

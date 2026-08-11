@@ -5,7 +5,7 @@ import { SourceType } from '@control-tower/shared-types';
 import { createDefaultConnectorRegistry } from '../connectors/connector-registry';
 import { CsvFileConnector } from '../connectors/csv-file.connector';
 import { jsonArrayToCsv } from '../connectors/rest-api.connector';
-import { ConnectorNotImplementedError } from '../connectors/connector';
+import { allowedUploadExtensions, ConnectorNotImplementedError } from '../connectors/connector';
 
 describe('ConnectorRegistry', () => {
   const registry = createDefaultConnectorRegistry();
@@ -61,6 +61,18 @@ describe('ConnectorRegistry', () => {
     }
   });
 
+  // The upload endpoint validates against these, so anything advertised in the
+  // browser must be a real extension the server will accept.
+  it('every advertised extension is parseable and non-empty', () => {
+    for (const type of registry.listTypes().filter((t) => t.supportsUpload)) {
+      const extensions = allowedUploadExtensions(type.uploadAccept);
+      expect(extensions.length).toBeGreaterThan(0);
+      for (const ext of extensions) {
+        expect(ext).toMatch(/^\.[a-z0-9]+$/);
+      }
+    }
+  });
+
   it('throws a helpful error for unregistered types', () => {
     const empty = createDefaultConnectorRegistry();
     expect(empty.has(SourceType.CSV_UPLOAD)).toBe(true);
@@ -79,6 +91,22 @@ describe('ConnectorRegistry', () => {
     await expect(sftp.fetch({})).rejects.toThrow(ConnectorNotImplementedError);
   });
 });
+
+describe('allowedUploadExtensions', () => {
+  it('extracts extensions and ignores MIME types', () => {
+    expect(allowedUploadExtensions('.txt,.csv,text/plain,text/csv')).toEqual(['.txt', '.csv']);
+  });
+
+  it('trims and lowercases', () => {
+    expect(allowedUploadExtensions(' .TXT , .Csv ')).toEqual(['.txt', '.csv']);
+  });
+
+  it('returns nothing for undefined or MIME-only accepts', () => {
+    expect(allowedUploadExtensions(undefined)).toEqual([]);
+    expect(allowedUploadExtensions('text/plain')).toEqual([]);
+  });
+});
+
 
 describe('CsvFileConnector', () => {
   let dir: string;
