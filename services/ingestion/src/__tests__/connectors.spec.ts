@@ -33,6 +33,34 @@ describe('ConnectorRegistry', () => {
     expect(await connector.fetch({})).toEqual([]);
   });
 
+  // The upload picker is driven entirely by this metadata, so a connector that
+  // accepts uploads without declaring them would render as a generic "file".
+  it('every upload-capable connector declares what it accepts and its label', () => {
+    const uploadable = registry.listTypes().filter((t) => t.supportsUpload);
+    expect(uploadable.map((t) => t.type).sort()).toEqual(
+      [SourceType.CSV_UPLOAD, SourceType.EMAIL_FAILURE_REPORT].sort(),
+    );
+    for (const type of uploadable) {
+      expect(type.uploadAccept).toBeTruthy();
+      expect(type.uploadLabel).toBeTruthy();
+    }
+  });
+
+  it('the failure report accepts .txt and the CSV source accepts .csv', () => {
+    const byType = new Map(registry.listTypes().map((t) => [t.type, t]));
+    expect(byType.get(SourceType.EMAIL_FAILURE_REPORT)!.uploadAccept).toContain('.txt');
+    expect(byType.get(SourceType.EMAIL_FAILURE_REPORT)!.uploadLabel).toBe('report');
+    expect(byType.get(SourceType.CSV_UPLOAD)!.uploadAccept).toContain('.csv');
+    // tab-delimited exports keep a .txt name; the parser detects the delimiter
+    expect(byType.get(SourceType.CSV_UPLOAD)!.uploadAccept).toContain('.txt');
+  });
+
+  it('non-upload connectors declare no upload metadata', () => {
+    for (const type of registry.listTypes().filter((t) => !t.supportsUpload)) {
+      expect(type.uploadAccept).toBeUndefined();
+    }
+  });
+
   it('throws a helpful error for unregistered types', () => {
     const empty = createDefaultConnectorRegistry();
     expect(empty.has(SourceType.CSV_UPLOAD)).toBe(true);

@@ -15,6 +15,12 @@ export interface SourceConnector {
    * per connector so the upload picker stays correct as new types are added.
    */
   readonly supportsUpload: boolean;
+  /**
+   * What the file dialog should accept, and the noun to show on the upload
+   * button. Declared here so the picker never has to special-case a type.
+   */
+  readonly uploadAccept?: string;
+  readonly uploadLabel?: string;
   /** Human hints shown in the Settings UI for the connector block of configJson. */
   readonly configHints: Record<string, string>;
   test(config: SourceConfig): Promise<ConnectionTestResult>;

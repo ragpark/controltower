@@ -7,6 +7,10 @@ export class CsvUploadConnector implements SourceConnector {
   readonly type = SourceType.CSV_UPLOAD;
   readonly supportsScheduledFetch = false;
   readonly supportsUpload = true;
+  // .txt is allowed: spreadsheet "Text (Tab delimited)" exports keep that
+  // extension, and the parser detects the delimiter.
+  readonly uploadAccept = '.csv,.txt,text/csv,text/plain';
+  readonly uploadLabel = 'CSV';
   readonly configHints = {
     mapping: 'Column mapping from canonical order fields to CSV headers',
     delimiter: 'CSV delimiter (default ",")',
