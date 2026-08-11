@@ -22,6 +22,11 @@ RUN npm run prisma:generate -w @control-tower/api \
  && npm run build:api \
  && npx tsc apps/api/prisma/seed.ts --outDir apps/api/dist-seed \
       --module commonjs --target ES2022 --esModuleInterop --skipLibCheck \
+ # Fail the build if the entrypoints are not where the runtime expects them.
+ # The emitted layout shifts if the compilation set gains a file outside src/,
+ # which would otherwise only surface as a crash loop after deployment.
+ && test -f apps/api/dist/main.js \
+ && test -f apps/api/dist-seed/seed.js \
  && npm prune --omit=dev
 
 # ── Runtime stage ───────────────────────────────────────────────────────
