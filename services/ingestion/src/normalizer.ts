@@ -21,12 +21,26 @@ export const DEFAULT_MAPPING: ColumnMapping = {
   licenceIsbnMatch: 'LicenceManagerISBNMatch',
 };
 
+/**
+ * Column headers are compared with the byte-level noise spreadsheets introduce
+ * removed: byte-order marks, zero-width characters, non-breaking spaces and
+ * stray wrapping quotes. Without this a header that looks identical on screen
+ * fails to match, and the resulting error is impossible to act on because the
+ * offending characters are invisible.
+ */
+export const normaliseHeader = (value: string): string =>
+  value
+    .replace(/\uFEFF/g, '')
+    .replace(/[\u200B-\u200D\u2060]/g, '')
+    .replace(/\u00A0/g, ' ')
+    .replace(/^["']+|["']+$/g, '')
+    .trim()
+    .toLowerCase();
+
 function pick(row: Record<string, string>, header?: string): string | null {
   if (!header) return null;
-  // headers are matched case-insensitively and trimmed
-  const key = Object.keys(row).find(
-    (k) => k.trim().toLowerCase() === header.trim().toLowerCase(),
-  );
+  // headers are matched case-insensitively, trimmed and stripped of invisibles
+  const key = Object.keys(row).find((k) => normaliseHeader(k) === normaliseHeader(header));
   const value = key !== undefined ? row[key] : undefined;
   const trimmed = value?.trim();
   return trimmed ? trimmed : null;

@@ -1,6 +1,6 @@
 import { parse } from 'csv-parse/sync';
 import { ColumnMapping } from '@control-tower/shared-types';
-import { DEFAULT_MAPPING, normalizeRow } from './normalizer';
+import { DEFAULT_MAPPING, normaliseHeader, normalizeRow } from './normalizer';
 import { ParseResult, RowError } from './types';
 
 export interface CsvParseOptions {
@@ -8,12 +8,79 @@ export interface CsvParseOptions {
   delimiter?: string;
 }
 
+/** Delimiters seen in the wild from spreadsheet "Save as" variants. */
+export const CANDIDATE_DELIMITERS = [',', '\t', ';', '|'];
+
+const DELIMITER_LABELS: Record<string, string> = {
+  ',': 'comma',
+  '\t': 'tab',
+  ';': 'semicolon',
+  '|': 'pipe',
+};
+
+export const describeDelimiter = (delimiter: string) =>
+  DELIMITER_LABELS[delimiter] ?? JSON.stringify(delimiter);
+
 /** True when every cell in the row is empty — spreadsheet filler, not data. */
 export function isBlankRow(row: Record<string, string>): boolean {
   return Object.values(row).every((value) => (value ?? '').trim() === '');
 }
 
-const normaliseHeader = (value: string) => value.trim().toLowerCase();
+function asText(content: Buffer | string): string {
+  return (typeof content === 'string' ? content : content.toString('utf8')).replace(
+    /^\uFEFF/,
+    '',
+  );
+}
+
+function firstNonEmptyLine(content: Buffer | string): string {
+  for (const line of asText(content).split(/\r?\n/)) {
+    if (line.trim() !== '') return line;
+  }
+  return '';
+}
+
+/**
+ * "Save as CSV" is not a guarantee: Excel's Text and Unicode Text options emit
+ * tab-separated data, and some locales default to semicolons. Parsed with the
+ * wrong delimiter the whole header collapses into one column, which then looks
+ * like a broken column mapping. Prefer the configured delimiter, but when it
+ * yields a single column and another candidate splits the header cleanly, use
+ * that instead.
+ */
+export function detectDelimiter(content: Buffer | string, configured?: string): string {
+  const preferred = configured || ',';
+  const header = firstNonEmptyLine(content);
+  if (!header) return preferred;
+
+  const columnCount = (delimiter: string): number => {
+    try {
+      const [row] = parse(header, {
+        delimiter,
+        bom: true,
+        trim: true,
+        relax_column_count: true,
+        relax_quotes: true,
+      }) as string[][];
+      return row?.length ?? 0;
+    } catch {
+      return 0;
+    }
+  };
+
+  if (columnCount(preferred) > 1) return preferred;
+
+  let best = preferred;
+  let bestCount = 1;
+  for (const candidate of CANDIDATE_DELIMITERS) {
+    const count = columnCount(candidate);
+    if (count > bestCount) {
+      best = candidate;
+      bestCount = count;
+    }
+  }
+  return best;
+}
 
 /**
  * The two fields that form the deduplication key must be mapped to real
@@ -37,25 +104,40 @@ function missingRequiredHeaders(
 /**
  * Builds a single actionable message for a mapping/header mismatch. Without
  * this the same "missing required field" error repeats for every row and never
- * says the real cause: the source's column mapping doesn't fit this file.
+ * says the real cause. Headers are JSON-quoted so tabs, zero-width characters
+ * and stray padding are visible rather than silently rendering as whitespace.
  */
 function mappingMismatchMessage(
   headers: string[],
   mapping: ColumnMapping,
   missing: Array<{ field: string; header: string }>,
+  delimiter: string,
 ): string {
   const expected = missing.map((m) => `"${m.header}" (for ${m.field})`).join(' and ');
+  const found = headers.map((h) => JSON.stringify(h)).join(', ');
   const parts = [
-    `This source's column mapping does not fit the file: expected ${expected}, ` +
-      `but the file's columns are: ${headers.join(', ')}.`,
-    'Update the mapping in Settings → Data Sources so it matches these column names.',
+    `This source's column mapping does not fit the file: expected ${expected}, but the ` +
+      `file's ${headers.length} column(s), read with a ${describeDelimiter(delimiter)} ` +
+      `delimiter, are: ${found}.`,
   ];
-  // The commonest cause is a source still carrying a stale mapping.
-  if (mapping !== DEFAULT_MAPPING && missingRequiredHeaders(headers, DEFAULT_MAPPING).length === 0) {
+
+  if (headers.length === 1) {
     parts.push(
-      'The built-in ActiveHub mapping matches this file — removing this source\'s ' +
-        '"mapping" override will make the import work.',
+      'The whole header row parsed as a single column, so the file is not ' +
+        `${describeDelimiter(delimiter)}-separated. Set the correct "delimiter" in ` +
+        'Settings → Data Sources, or re-export the file as comma-separated CSV.',
     );
+  } else {
+    parts.push('Update the mapping in Settings → Data Sources so it matches these column names.');
+    if (
+      mapping !== DEFAULT_MAPPING &&
+      missingRequiredHeaders(headers, DEFAULT_MAPPING).length === 0
+    ) {
+      parts.push(
+        'The built-in ActiveHub mapping matches this file — removing this source\'s ' +
+          '"mapping" override will make the import work.',
+      );
+    }
   }
   return parts.join(' ');
 }
@@ -70,6 +152,7 @@ export function parseCsvOrders(
   options: CsvParseOptions = {},
 ): ParseResult {
   const mapping = options.mapping ?? DEFAULT_MAPPING;
+  const delimiter = detectDelimiter(content, options.delimiter);
 
   let rows: Record<string, string>[];
   let headers: string[] = [];
@@ -77,10 +160,10 @@ export function parseCsvOrders(
     rows = parse(content, {
       columns: (header: string[]) => {
         headers = header;
-        return header;
+        return header.map(normaliseHeader);
       },
       bom: true,
-      delimiter: options.delimiter ?? ',',
+      delimiter,
       skip_empty_lines: true,
       trim: true,
       relax_column_count: true,
@@ -89,6 +172,7 @@ export function parseCsvOrders(
     return {
       orders: [],
       totalRows: 0,
+      delimiter,
       errors: [
         {
           row: 0,
@@ -105,7 +189,10 @@ export function parseCsvOrders(
       return {
         orders: [],
         totalRows: 0,
-        errors: [{ row: 0, message: mappingMismatchMessage(headers, mapping, missing) }],
+        delimiter,
+        errors: [
+          { row: 0, message: mappingMismatchMessage(headers, mapping, missing, delimiter) },
+        ],
       };
     }
   }
@@ -128,5 +215,5 @@ export function parseCsvOrders(
     }
   });
 
-  return { orders, errors, totalRows };
+  return { orders, errors, totalRows, delimiter };
 }
