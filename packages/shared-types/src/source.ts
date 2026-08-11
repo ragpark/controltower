@@ -61,5 +61,9 @@ export interface SourceTypeInfo {
   label: string;
   supportsSchedule: boolean;
   supportsUpload: boolean;
+  /** `accept` attribute for the file dialog, declared by the connector. */
+  uploadAccept?: string;
+  /** Noun for the upload button, e.g. "CSV" or "report". */
+  uploadLabel?: string;
   configHints: Record<string, string>;
 }

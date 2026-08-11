@@ -65,11 +65,10 @@ export class ImportsController {
     @Body() body: UploadBody,
     @CurrentUser() user: ApiUser,
   ) {
-    if (!file) throw new BadRequestException('A CSV file is required (field name "file")');
-    const name = file.originalname.toLowerCase();
-    if (!name.endsWith('.csv') && !name.endsWith('.txt')) {
-      throw new BadRequestException('Only .csv and .txt files are supported');
-    }
+    if (!file) throw new BadRequestException('A file is required (field name "file")');
+    // Accepted extensions are validated in the orchestrator against the
+    // connector's own declaration — kept in one place so the browser's file
+    // filter and the server's rules cannot drift apart.
     return this.orchestrator.importUpload(
       body.sourceId,
       { filename: file.originalname, content: file.buffer },

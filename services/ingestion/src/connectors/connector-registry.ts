@@ -35,6 +35,8 @@ export class ConnectorRegistry {
       label: SOURCE_TYPE_LABELS[c.type],
       supportsSchedule: c.supportsScheduledFetch,
       supportsUpload: c.supportsUpload,
+      uploadAccept: c.uploadAccept,
+      uploadLabel: c.uploadLabel,
       configHints: c.configHints,
     }));
   }

@@ -56,6 +56,13 @@ export default function ImportsPage() {
   );
   const uploadSources = (sources ?? []).filter((s) => uploadableTypes.has(s.type));
 
+  // The file dialog and button follow the selected source's connector, so a
+  // failure report is never presented as a CSV upload.
+  const selectedSource = uploadSources.find((s) => s.id === uploadSourceId);
+  const selectedTypeInfo = (sourceTypes ?? []).find((t) => t.type === selectedSource?.type);
+  const uploadAccept = selectedTypeInfo?.uploadAccept ?? '.csv,.txt,text/csv,text/plain';
+  const uploadNoun = selectedTypeInfo?.uploadLabel ?? 'file';
+
   const columns: GridColDef<ImportRunDto>[] = [
     {
       field: 'startTime',
@@ -90,7 +97,9 @@ export default function ImportsPage() {
       { sourceId: uploadSourceId, file },
       {
         onSuccess: (run) =>
-          setToast(`Imported ${run.successfulRows} rows (${run.failedRows} failed)`),
+          setToast(
+            `Imported ${run.successfulRows} record(s)${run.failedRows ? `, ${run.failedRows} failed` : ''}`,
+          ),
         onError: (error) =>
           setToast(error instanceof Error ? error.message : 'Upload failed'),
       },
@@ -111,7 +120,15 @@ export default function ImportsPage() {
               label="Upload to source"
               value={uploadSourceId}
               onChange={(e) => setUploadSourceId(e.target.value)}
-              sx={{ minWidth: 200 }}
+              helperText={
+                selectedTypeInfo
+                  ? `Accepts ${selectedTypeInfo.uploadAccept
+                      ?.split(',')
+                      .filter((a) => a.startsWith('.'))
+                      .join(' ')}`
+                  : undefined
+              }
+              sx={{ minWidth: 220 }}
             >
               {uploadSources.map((s) => (
                 <MenuItem key={s.id} value={s.id}>
@@ -125,14 +142,14 @@ export default function ImportsPage() {
               disabled={!uploadSourceId || upload.isPending}
               onClick={() => fileInputRef.current?.click()}
             >
-              {upload.isPending ? 'Uploading…' : 'Upload CSV'}
+              {upload.isPending ? 'Uploading…' : `Upload ${uploadNoun}`}
             </Button>
             <input
               ref={fileInputRef}
               type="file"
-              accept=".csv,.txt,text/csv,text/plain"
+              accept={uploadAccept}
               hidden
-              aria-label="CSV file"
+              aria-label={`${uploadNoun} file to upload`}
               onChange={(e) => handleFile(e.target.files?.[0] ?? null)}
             />
           </Stack>

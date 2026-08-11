@@ -15,6 +15,12 @@ export interface SourceConnector {
    * per connector so the upload picker stays correct as new types are added.
    */
   readonly supportsUpload: boolean;
+  /**
+   * What the file dialog should accept, and the noun to show on the upload
+   * button. Declared here so the picker never has to special-case a type.
+   */
+  readonly uploadAccept?: string;
+  readonly uploadLabel?: string;
   /** Human hints shown in the Settings UI for the connector block of configJson. */
   readonly configHints: Record<string, string>;
   test(config: SourceConfig): Promise<ConnectionTestResult>;
@@ -29,6 +35,18 @@ export class ConnectorNotImplementedError extends Error {
     );
     this.name = 'ConnectorNotImplementedError';
   }
+}
+
+/**
+ * The file extensions a connector accepts, parsed from its `uploadAccept`.
+ * The upload endpoint validates against this so the extensions offered in the
+ * browser and the ones the server allows cannot drift apart.
+ */
+export function allowedUploadExtensions(accept?: string): string[] {
+  return (accept ?? '')
+    .split(',')
+    .map((part) => part.trim().toLowerCase())
+    .filter((part) => part.startsWith('.'));
 }
 
 export function connectorSetting(config: SourceConfig, key: string): string | undefined {
