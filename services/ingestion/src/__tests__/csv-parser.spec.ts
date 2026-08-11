@@ -122,6 +122,49 @@ describe('parseCsvOrders — ActiveHub export', () => {
   });
 });
 
+describe('column mapping mismatch', () => {
+  const LEGACY_MAPPING = { orderNumber: 'Order Number', productCode: 'Product Code' };
+
+  it('reports one actionable cause instead of an error per row', () => {
+    const result = parseCsvOrders(CSV, { mapping: LEGACY_MAPPING });
+    expect(result.errors).toHaveLength(1);
+    expect(result.orders).toHaveLength(0);
+    const [error] = result.errors;
+    expect(error.row).toBe(0);
+    expect(error.message).toContain('column mapping does not fit the file');
+    // names what it wanted and what the file actually has
+    expect(error.message).toContain('"Order Number"');
+    expect(error.message).toContain('"Product Code"');
+    expect(error.message).toContain('order_id');
+    expect(error.message).toContain('productcode');
+    expect(error.message).toContain('Settings → Data Sources');
+  });
+
+  it('points out when the built-in ActiveHub mapping would work', () => {
+    const [error] = parseCsvOrders(CSV, { mapping: LEGACY_MAPPING }).errors;
+    expect(error.message).toContain('built-in ActiveHub mapping matches this file');
+  });
+
+  it('omits that hint when the default mapping would not help either', () => {
+    const csv = 'colA,colB\n1,2\n';
+    const [error] = parseCsvOrders(csv, { mapping: LEGACY_MAPPING }).errors;
+    expect(error.message).not.toContain('built-in ActiveHub mapping matches');
+    expect(error.message).toContain('colA, colB');
+  });
+
+  it('flags a mapping that omits a required field entirely', () => {
+    const [error] = parseCsvOrders(CSV, {
+      mapping: { orderNumber: 'order_id' } as never,
+    }).errors;
+    expect(error.message).toContain('(not mapped)');
+    expect(error.message).toContain('productCode');
+  });
+
+  it('accepts a correct mapping and imports normally', () => {
+    expect(parseCsvOrders(CSV).errors.every((e) => e.row > 0)).toBe(true);
+  });
+});
+
 describe('isBlankRow', () => {
   it('detects all-empty and whitespace-only rows', () => {
     expect(isBlankRow({ a: '', b: '   ' })).toBe(true);

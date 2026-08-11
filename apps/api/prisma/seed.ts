@@ -197,9 +197,44 @@ async function seedSources() {
   console.log('Seeded default sources');
 }
 
+/**
+ * Sources created before the ActiveHub alignment (and any created from the old
+ * "Add source" template) carry a mapping built for the placeholder headers
+ * "Order Number" / "Product Code". Applied to a real ActiveHub export that
+ * mapping matches nothing, so every row fails validation. Repoint them at the
+ * ActiveHub headers rather than leaving broken sources behind.
+ */
+async function migrateLegacyMappings() {
+  const sources = await prisma.source.findMany();
+  let migrated = 0;
+
+  for (const source of sources) {
+    const config = (source.configJson ?? {}) as {
+      mapping?: Record<string, string>;
+      [key: string]: unknown;
+    };
+    const mapping = config.mapping;
+    const isLegacy =
+      mapping?.orderNumber === 'Order Number' || mapping?.productCode === 'Product Code';
+    if (!isLegacy) continue;
+
+    await prisma.source.update({
+      where: { id: source.id },
+      data: { configJson: { ...config, mapping: DEFAULT_MAPPING } },
+    });
+    migrated += 1;
+    console.log(`Migrated legacy column mapping on source "${source.name}"`);
+  }
+
+  if (migrated > 0) {
+    console.log(`Migrated ${migrated} source(s) to the ActiveHub column mapping`);
+  }
+}
+
 async function main() {
   await seedRules();
   await seedSources();
+  await migrateLegacyMappings();
 }
 
 main()

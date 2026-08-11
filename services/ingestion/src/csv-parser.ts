@@ -13,6 +13,53 @@ export function isBlankRow(row: Record<string, string>): boolean {
   return Object.values(row).every((value) => (value ?? '').trim() === '');
 }
 
+const normaliseHeader = (value: string) => value.trim().toLowerCase();
+
+/**
+ * The two fields that form the deduplication key must be mapped to real
+ * columns; everything else is optional and simply left empty when absent.
+ */
+function missingRequiredHeaders(
+  headers: string[],
+  mapping: ColumnMapping,
+): Array<{ field: string; header: string }> {
+  const present = new Set(headers.map(normaliseHeader));
+  return (
+    [
+      ['orderNumber', mapping.orderNumber],
+      ['productCode', mapping.productCode],
+    ] as const
+  )
+    .filter(([, header]) => !header || !present.has(normaliseHeader(header)))
+    .map(([field, header]) => ({ field, header: header || '(not mapped)' }));
+}
+
+/**
+ * Builds a single actionable message for a mapping/header mismatch. Without
+ * this the same "missing required field" error repeats for every row and never
+ * says the real cause: the source's column mapping doesn't fit this file.
+ */
+function mappingMismatchMessage(
+  headers: string[],
+  mapping: ColumnMapping,
+  missing: Array<{ field: string; header: string }>,
+): string {
+  const expected = missing.map((m) => `"${m.header}" (for ${m.field})`).join(' and ');
+  const parts = [
+    `This source's column mapping does not fit the file: expected ${expected}, ` +
+      `but the file's columns are: ${headers.join(', ')}.`,
+    'Update the mapping in Settings → Data Sources so it matches these column names.',
+  ];
+  // The commonest cause is a source still carrying a stale mapping.
+  if (mapping !== DEFAULT_MAPPING && missingRequiredHeaders(headers, DEFAULT_MAPPING).length === 0) {
+    parts.push(
+      'The built-in ActiveHub mapping matches this file — removing this source\'s ' +
+        '"mapping" override will make the import work.',
+    );
+  }
+  return parts.join(' ');
+}
+
 /**
  * Parse a CSV payload into normalized orders + row-level errors.
  * Never throws for bad rows — every problem is reported against its row number
@@ -25,9 +72,13 @@ export function parseCsvOrders(
   const mapping = options.mapping ?? DEFAULT_MAPPING;
 
   let rows: Record<string, string>[];
+  let headers: string[] = [];
   try {
     rows = parse(content, {
-      columns: true,
+      columns: (header: string[]) => {
+        headers = header;
+        return header;
+      },
       bom: true,
       delimiter: options.delimiter ?? ',',
       skip_empty_lines: true,
@@ -45,6 +96,18 @@ export function parseCsvOrders(
         },
       ],
     };
+  }
+
+  // Fail fast on a mapping mismatch — one clear cause beats N identical rows.
+  if (headers.length > 0) {
+    const missing = missingRequiredHeaders(headers, mapping);
+    if (missing.length > 0) {
+      return {
+        orders: [],
+        totalRows: 0,
+        errors: [{ row: 0, message: mappingMismatchMessage(headers, mapping, missing) }],
+      };
+    }
   }
 
   const orders: ParseResult['orders'] = [];
