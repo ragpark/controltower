@@ -1,0 +1,28 @@
+{
+  "name": "order-control-tower",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Order Control Tower — operational order visibility platform",
+  "workspaces": [
+    "packages/*",
+    "services/*",
+    "apps/*"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build:libs": "npm run build -w @control-tower/shared-types -w @control-tower/classification -w @control-tower/ingestion -w @control-tower/reporting",
+    "build:api": "npm run build -w @control-tower/api",
+    "build:web": "npm run build -w @control-tower/web",
+    "build": "npm run build:libs && npm run build:api && npm run build:web",
+    "test": "npm run test --workspaces --if-present",
+    "test:coverage": "npm run test:coverage --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "dev:api": "npm run start:dev -w @control-tower/api",
+    "dev:web": "npm run dev -w @control-tower/web",
+    "prisma:generate": "npm run prisma:generate -w @control-tower/api",
+    "prisma:migrate": "npm run prisma:migrate:deploy -w @control-tower/api",
+    "prisma:seed": "npm run prisma:seed -w @control-tower/api"
+  }
+}
