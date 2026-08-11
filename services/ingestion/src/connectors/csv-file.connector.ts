@@ -12,6 +12,7 @@ import { connectorSetting, SourceConnector } from './connector';
 export class CsvFileConnector implements SourceConnector {
   readonly type = SourceType.CSV_FILE;
   readonly supportsScheduledFetch = true;
+  readonly supportsUpload = false;
   readonly configHints = {
     'connector.directory': 'Directory to scan (relative paths resolve under the ingestion data dir)',
     'connector.pattern': 'Filename filter, e.g. "orders" matches orders*.csv (optional)',

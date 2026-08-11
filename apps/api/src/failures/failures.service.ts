@@ -4,6 +4,7 @@ import { AuditAction, FailureCategory } from '@control-tower/shared-types';
 import { Prisma } from '@prisma/client';
 import { AuditService } from '../audit/audit.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { ClassificationService } from '../rules/classification.service';
 
 export interface FailureImportSummary {
   received: number;
@@ -21,6 +22,7 @@ export class FailuresService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly classification: ClassificationService,
   ) {}
 
   /**
@@ -90,8 +92,9 @@ export class FailuresService {
     }
 
     const autoResolved = await this.autoResolveReconciled(actor);
-    const { linkedOrders, unmatchedOrderNumbers } = await this.syncOrderSummaries(
+    const { linkedOrders, unmatchedOrderNumbers } = await this.syncAndReclassify(
       failures.map((f) => f.orderNumber),
+      actor,
     );
 
     await this.audit.record({
@@ -113,34 +116,46 @@ export class FailuresService {
   }
 
   /**
-   * Close failures whose order has since provisioned successfully — every
-   * matching order line reconciled with Licence Manager. Conservative on
-   * purpose: a partially reconciled order stays open.
+   * Close failures whose order has since provisioned successfully.
+   *
+   * Two conditions, both required. Every matching order line must reconcile
+   * with Licence Manager — a partially reconciled order stays open. And that
+   * reconciliation must be *newer* than the failure report, compared against
+   * `importedAt` rather than `updatedAt`: writing the provisioning summary
+   * touches `updatedAt`, so using it would let this method resolve failures on
+   * the strength of its own writes. The recency check is also what stops a
+   * failure reported moments ago being closed by stale order data.
    */
   async autoResolveReconciled(actor: string): Promise<number> {
     const open = await this.prisma.provisioningFailure.findMany({
       where: { resolvedAt: null },
-      select: { id: true, orderNumber: true },
+      select: { id: true, orderNumber: true, lastSeenAt: true },
     });
     if (open.length === 0) return 0;
 
     const orderNumbers = [...new Set(open.map((f) => f.orderNumber))];
     const orders = await this.prisma.order.findMany({
       where: { orderNumber: { in: orderNumbers } },
-      select: { orderNumber: true, licenceOrderMatch: true },
+      select: { orderNumber: true, licenceOrderMatch: true, importedAt: true },
     });
 
-    const byNumber = new Map<string, string[]>();
+    const byNumber = new Map<string, Array<{ matched: boolean; importedAt: Date }>>();
     for (const order of orders) {
       const list = byNumber.get(order.orderNumber) ?? [];
-      list.push((order.licenceOrderMatch ?? '').trim().toLowerCase());
+      list.push({
+        matched: (order.licenceOrderMatch ?? '').trim().toLowerCase() === 'match',
+        importedAt: order.importedAt,
+      });
       byNumber.set(order.orderNumber, list);
     }
 
     const resolvable = open
       .filter((f) => {
-        const flags = byNumber.get(f.orderNumber);
-        return Boolean(flags?.length) && flags!.every((flag) => flag === 'match');
+        const lines = byNumber.get(f.orderNumber);
+        if (!lines?.length) return false;
+        return lines.every(
+          (line) => line.matched && line.importedAt.getTime() > f.lastSeenAt.getTime(),
+        );
       })
       .map((f) => f.id);
 
@@ -151,10 +166,13 @@ export class FailuresService {
       data: {
         resolvedAt: new Date(),
         resolvedBy: 'system',
-        resolutionNote: 'Licence Manager now matches every line for this order',
+        resolutionNote:
+          'Licence Manager matched every line for this order in an import taken after the failure was last reported',
       },
     });
-    this.logger.log(`Auto-resolved ${count} provisioning failure(s) after reconciliation`);
+    this.logger.log(
+      `Auto-resolved ${count} provisioning failure(s) after reconciliation (actor=${actor})`,
+    );
     return count;
   }
 
@@ -163,42 +181,105 @@ export class FailuresService {
    * reported before the order is imported, so this also runs after order
    * imports to link records that arrived out of order.
    */
-  async syncOrderSummaries(
-    orderNumbers?: string[],
-  ): Promise<{ linkedOrders: number; unmatchedOrderNumbers: string[] }> {
+  async syncOrderSummaries(orderNumbers?: string[]): Promise<{
+    linkedOrders: number;
+    unmatchedOrderNumbers: string[];
+    changedOrderIds: string[];
+  }> {
     const scope = orderNumbers?.length ? [...new Set(orderNumbers)] : undefined;
 
-    // Clear summaries in scope, then re-apply from the open failures.
-    await this.prisma.order.updateMany({
-      where: scope ? { orderNumber: { in: scope } } : {},
-      data: { provisioningCategory: null, provisioningOwner: null, provisioningFailedAt: null },
-    });
-
     const open = await this.prisma.provisioningFailure.findMany({
-      where: {
-        resolvedAt: null,
-        ...(scope ? { orderNumber: { in: scope } } : {}),
-      },
-      orderBy: { lastSeenAt: 'asc' },
+      where: { resolvedAt: null, ...(scope ? { orderNumber: { in: scope } } : {}) },
+      orderBy: { lastSeenAt: 'desc' },
     });
 
-    let linkedOrders = 0;
-    const unmatched: string[] = [];
-
+    // Most recently reported open failure wins for the order's summary.
+    const desired = new Map<
+      string,
+      { category: FailureCategory; owner: string; failedAt: Date }
+    >();
     for (const failure of open) {
-      const { count } = await this.prisma.order.updateMany({
-        where: { orderNumber: failure.orderNumber },
-        data: {
-          provisioningCategory: failure.category,
-          provisioningOwner: failure.owner,
-          provisioningFailedAt: failure.orderDate ?? failure.firstSeenAt,
-        },
+      if (desired.has(failure.orderNumber)) continue;
+      desired.set(failure.orderNumber, {
+        category: failure.category as FailureCategory,
+        owner: failure.owner,
+        failedAt: failure.orderDate ?? failure.firstSeenAt,
       });
-      if (count === 0) unmatched.push(failure.orderNumber);
-      linkedOrders += count;
     }
 
-    return { linkedOrders, unmatchedOrderNumbers: [...new Set(unmatched)] };
+    // Orders to reconcile: those in scope, or — for a full resync — orders that
+    // either have an open failure or still carry a summary that must be cleared.
+    const orders = await this.prisma.order.findMany({
+      where: scope
+        ? { orderNumber: { in: scope } }
+        : {
+            OR: [
+              { orderNumber: { in: [...desired.keys()] } },
+              { provisioningCategory: { not: null } },
+            ],
+          },
+      select: {
+        id: true,
+        orderNumber: true,
+        provisioningCategory: true,
+        provisioningOwner: true,
+        provisioningFailedAt: true,
+      },
+    });
+
+    const changedOrderIds: string[] = [];
+    const matchedNumbers = new Set<string>();
+    let linkedOrders = 0;
+
+    for (const order of orders) {
+      const target = desired.get(order.orderNumber) ?? null;
+      if (target) {
+        matchedNumbers.add(order.orderNumber);
+        linkedOrders += 1;
+      }
+
+      const unchanged =
+        (order.provisioningCategory ?? null) === (target?.category ?? null) &&
+        (order.provisioningOwner ?? null) === (target?.owner ?? null) &&
+        (order.provisioningFailedAt?.getTime() ?? null) === (target?.failedAt.getTime() ?? null);
+      if (unchanged) continue;
+
+      await this.prisma.order.update({
+        where: { id: order.id },
+        data: {
+          provisioningCategory: target?.category ?? null,
+          provisioningOwner: target?.owner ?? null,
+          provisioningFailedAt: target?.failedAt ?? null,
+        },
+      });
+      changedOrderIds.push(order.id);
+    }
+
+    const unmatchedOrderNumbers = [...desired.keys()].filter((n) => !matchedNumbers.has(n));
+    return { linkedOrders, unmatchedOrderNumbers, changedOrderIds };
+  }
+
+  /**
+   * Sync the summaries and re-run classification for the orders whose
+   * provisioning state actually changed. Without this the priority-15
+   * provisioning rule would never be applied to persisted data — an order would
+   * keep its previous classification and trace until someone re-ran the rules
+   * by hand, and resolving a failure would not move it back out of the queue.
+   */
+  async syncAndReclassify(orderNumbers: string[] | undefined, actor: string): Promise<{
+    linkedOrders: number;
+    unmatchedOrderNumbers: string[];
+    reclassified: number;
+  }> {
+    const { linkedOrders, unmatchedOrderNumbers, changedOrderIds } =
+      await this.syncOrderSummaries(orderNumbers);
+
+    const reclassified =
+      changedOrderIds.length > 0
+        ? await this.classification.reapply(changedOrderIds, actor)
+        : 0;
+
+    return { linkedOrders, unmatchedOrderNumbers, reclassified };
   }
 
   async list(params: {
@@ -301,7 +382,7 @@ export class FailuresService {
       where: { id },
       data: { resolvedAt: new Date(), resolvedBy: actor, resolutionNote: note ?? null },
     });
-    await this.syncOrderSummaries([failure.orderNumber]);
+    await this.syncAndReclassify([failure.orderNumber], actor);
     await this.audit.record({
       entityType: 'provisioning_failure',
       entityId: id,
@@ -321,7 +402,10 @@ export class FailuresService {
       where: { id: { in: ids } },
       select: { orderNumber: true },
     });
-    await this.syncOrderSummaries(affected.map((f) => f.orderNumber));
+    await this.syncAndReclassify(
+      affected.map((f) => f.orderNumber),
+      actor,
+    );
     await this.audit.record({
       entityType: 'provisioning_failure',
       entityId: 'bulk',

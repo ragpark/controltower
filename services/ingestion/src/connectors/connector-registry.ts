@@ -34,7 +34,7 @@ export class ConnectorRegistry {
       type: c.type,
       label: SOURCE_TYPE_LABELS[c.type],
       supportsSchedule: c.supportsScheduledFetch,
-      supportsUpload: c.type === SourceType.CSV_UPLOAD,
+      supportsUpload: c.supportsUpload,
       configHints: c.configHints,
     }));
   }

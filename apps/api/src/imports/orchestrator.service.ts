@@ -195,6 +195,22 @@ export class OrchestratorService {
         }
       }
 
+      // A failure report can arrive before the orders it refers to. Link those
+      // now that the orders exist, and reclassify anything that changed.
+      const linked = await this.failures.syncAndReclassify(
+        [...new Set(unique.map((o) => o.orderNumber))],
+        actor,
+      );
+      if (linked.linkedOrders > 0) {
+        log.push(
+          logEntry(
+            'info',
+            `Linked ${linked.linkedOrders} order line(s) to an open provisioning failure ` +
+              `(${linked.reclassified} reclassified).`,
+          ),
+        );
+      }
+
       const failedRows = parsed.errors.length + (unique.length - successful);
       const status =
         failedRows > 0 ? ImportRunStatus.COMPLETED_WITH_ERRORS : ImportRunStatus.COMPLETED;

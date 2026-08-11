@@ -10,6 +10,7 @@ import { SourceConnector } from './connector';
 export class EmailFailureReportConnector implements SourceConnector {
   readonly type = SourceType.EMAIL_FAILURE_REPORT;
   readonly supportsScheduledFetch = false;
+  readonly supportsUpload = true;
   readonly configHints = {
     note: 'Paste or upload the email body as a .txt/.csv file. No mapping is required — the report layout is fixed.',
   };

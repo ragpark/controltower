@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Param, ParseUUIDPipe, Post, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { ApiUser, FailureCategory, Role } from '@control-tower/shared-types';
-import { Type } from 'class-transformer';
+import { Transform } from 'class-transformer';
 import {
   ArrayNotEmpty,
   IsArray,
@@ -32,8 +32,10 @@ class ListFailuresQuery extends PaginationQuery {
   @MaxLength(200)
   search?: string;
 
+  // Boolean() on a query string is truthy for any non-empty value, so
+  // ?includeResolved=false would otherwise mean true.
   @IsOptional()
-  @Type(() => Boolean)
+  @Transform(({ value }) => value === true || value === 'true' || value === '1')
   @IsBoolean()
   includeResolved?: boolean;
 }
@@ -100,7 +102,7 @@ export class FailuresController {
 
   @Post('resync')
   @Roles(Role.OPERATOR)
-  resync() {
-    return this.failures.syncOrderSummaries();
+  resync(@CurrentUser() user: ApiUser) {
+    return this.failures.syncAndReclassify(undefined, user.name);
   }
 }
