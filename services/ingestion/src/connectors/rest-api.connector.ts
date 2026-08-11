@@ -10,6 +10,7 @@ import { connectorSetting, SourceConnector } from './connector';
 export class RestApiConnector implements SourceConnector {
   readonly type = SourceType.REST_API;
   readonly supportsScheduledFetch = true;
+  readonly supportsUpload = false;
   readonly configHints = {
     'connector.url': 'HTTPS endpoint returning CSV (or a JSON array of objects)',
     'connector.authToken': 'Optional bearer token',

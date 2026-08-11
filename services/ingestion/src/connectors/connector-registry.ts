@@ -4,6 +4,7 @@ import { AzureBlobConnector } from './azure-blob.connector';
 import { CsvFileConnector } from './csv-file.connector';
 import { CsvUploadConnector } from './csv-upload.connector';
 import { RestApiConnector } from './rest-api.connector';
+import { EmailFailureReportConnector } from './email-report.connector';
 import { SftpConnector, SharePointConnector, TableauConnector } from './stub.connectors';
 
 export class ConnectorRegistry {
@@ -33,7 +34,7 @@ export class ConnectorRegistry {
       type: c.type,
       label: SOURCE_TYPE_LABELS[c.type],
       supportsSchedule: c.supportsScheduledFetch,
-      supportsUpload: c.type === SourceType.CSV_UPLOAD,
+      supportsUpload: c.supportsUpload,
       configHints: c.configHints,
     }));
   }
@@ -47,6 +48,7 @@ export function createDefaultConnectorRegistry(options?: {
     .register(new CsvFileConnector(options?.csvFileBaseDir))
     .register(new RestApiConnector())
     .register(new AzureBlobConnector())
+    .register(new EmailFailureReportConnector())
     .register(new SftpConnector())
     .register(new SharePointConnector())
     .register(new TableauConnector());

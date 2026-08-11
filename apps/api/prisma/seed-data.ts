@@ -51,6 +51,18 @@ export const CLASSIFICATION_RULES: SeedRule[] = [
     outcome: Classification.CANCELLED,
   },
   {
+    name: 'Provisioning failed downstream',
+    description:
+      'The fulfilment system reported a provisioning failure for this order — the ' +
+      'customer cannot access the product and a named team owns the next step',
+    priority: 15,
+    strategy: 'field-match',
+    ruleDefinition: {
+      conditions: [{ field: 'provisioningCategory', operator: 'notEmpty' }],
+    },
+    outcome: Classification.CUSTOMER_IMPACTED,
+  },
+  {
     name: 'Paid but no licence provisioned',
     description:
       'Order completed in the store but Licence Manager has no matching order — ' +

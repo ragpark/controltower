@@ -10,6 +10,11 @@ export interface SourceConnector {
   readonly type: SourceType;
   /** Whether the orchestrator can pull data on a schedule (vs. push/upload only). */
   readonly supportsScheduledFetch: boolean;
+  /**
+   * Whether files are pushed to this source via the upload endpoint. Declared
+   * per connector so the upload picker stays correct as new types are added.
+   */
+  readonly supportsUpload: boolean;
   /** Human hints shown in the Settings UI for the connector block of configJson. */
   readonly configHints: Record<string, string>;
   test(config: SourceConfig): Promise<ConnectionTestResult>;

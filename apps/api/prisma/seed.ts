@@ -70,6 +70,16 @@ async function seedSources() {
     },
     update: {},
   });
+  await prisma.source.upsert({
+    where: { name: 'Provisioning failure report' },
+    create: {
+      name: 'Provisioning failure report',
+      type: SourceType.EMAIL_FAILURE_REPORT,
+      enabled: true,
+      configJson: {},
+    },
+    update: {},
+  });
   console.log('Seeded default sources');
 }
 

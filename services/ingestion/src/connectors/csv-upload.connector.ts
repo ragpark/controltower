@@ -6,6 +6,7 @@ import { SourceConnector } from './connector';
 export class CsvUploadConnector implements SourceConnector {
   readonly type = SourceType.CSV_UPLOAD;
   readonly supportsScheduledFetch = false;
+  readonly supportsUpload = true;
   readonly configHints = {
     mapping: 'Column mapping from canonical order fields to CSV headers',
     delimiter: 'CSV delimiter (default ",")',

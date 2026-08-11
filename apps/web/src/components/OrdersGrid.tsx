@@ -138,6 +138,17 @@ export function OrdersGrid({ queue, classification }: OrdersGridProps) {
           <StatusChip classification={params.value as Classification | null} />
         ),
       },
+      {
+        field: 'provisioningOwner',
+        headerName: 'Action owner',
+        width: 150,
+        renderCell: (params) =>
+          params.value ? (
+            <Chip size="small" color="primary" variant="outlined" label={params.value as string} />
+          ) : (
+            <>—</>
+          ),
+      },
       { field: 'quantity', headerName: 'Qty', width: 70, type: 'number' },
       {
         field: 'value',

@@ -60,3 +60,27 @@ the file.
 are skipped entirely — they are neither counted in the row total nor reported as
 failures, so an import of one real row reads as "1 row" rather than "1 of 2,281
 with 2,280 errors".
+
+## `provisioning_failure_report_sample.txt`
+
+The daily downstream failure email, in its native fixed-width layout — long
+error messages wrap onto indented continuation lines. Upload it against the
+**Provisioning failure report** source from Import History.
+
+Records join to orders on **order number** (one failure can cover several order
+lines), and each is categorised and routed to an owning team:
+
+| Error | Category | Owner |
+|---|---|---|
+| `CUSTOMER_ID or OrgId from TEP is NULL` | TEP account missing | Customer Data |
+| `lastName contains invalid characters` | Invalid customer data | Customer Data |
+| `User already part of another organization` | Duplicate org membership | ActiveHub Support |
+| `autoRenew must be YES or NO` | Licence configuration error | Order Management |
+| `AES sent API fault to middleware` | Integration fault | Platform Engineering |
+
+Anything unmatched routes to **Triage** rather than being dropped.
+
+The report is a snapshot of that day's failures, not a list of everything still
+outstanding, so a failure absent from a later report is **not** treated as
+fixed. Failures close when an operator resolves them, or automatically once
+every order line for that order number reconciles with Licence Manager.

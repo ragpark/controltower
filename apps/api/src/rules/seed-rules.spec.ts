@@ -67,6 +67,29 @@ describe('seeded ActiveHub rule set', () => {
     },
   );
 
+  it('a downstream provisioning failure → Customer Impacted, naming the reason', () => {
+    const result = classify({ provisioningCategory: 'TEP_ACCOUNT_MISSING' });
+    expect(result.classification).toBe(Classification.CUSTOMER_IMPACTED);
+    expect(result.matchedRule?.name).toBe('Provisioning failed downstream');
+  });
+
+  it('a provisioning failure outranks the generic no-licence rule', () => {
+    // both mean customer impact, but the failure carries the actual cause
+    const result = classify({
+      provisioningCategory: 'INTEGRATION_FAULT',
+      licenceOrderMatch: 'Not Match',
+    });
+    expect(result.matchedRule?.name).toBe('Provisioning failed downstream');
+  });
+
+  it('a cancelled order is not customer-impacted even with a provisioning failure', () => {
+    const result = classify({
+      orderStatus: 'Cancelled',
+      provisioningCategory: 'TEP_ACCOUNT_MISSING',
+    });
+    expect(result.classification).toBe(Classification.CANCELLED);
+  });
+
   it('cancelled, refunded and declined orders → Cancelled', () => {
     for (const orderStatus of ['Cancelled', 'Refunded', 'Declined']) {
       expect(classify({ orderStatus }).classification).toBe(Classification.CANCELLED);

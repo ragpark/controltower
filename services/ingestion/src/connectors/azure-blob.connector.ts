@@ -9,6 +9,7 @@ import { connectorSetting, SourceConnector } from './connector';
 export class AzureBlobConnector implements SourceConnector {
   readonly type = SourceType.AZURE_BLOB;
   readonly supportsScheduledFetch = true;
+  readonly supportsUpload = false;
   readonly configHints = {
     'connector.sasUrl': 'Full blob SAS URL (read permission) pointing at the CSV blob',
   };

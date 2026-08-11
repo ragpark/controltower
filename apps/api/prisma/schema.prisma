@@ -15,6 +15,16 @@ enum SourceType {
   SFTP
   AZURE_BLOB
   TABLEAU
+  EMAIL_FAILURE_REPORT
+}
+
+enum FailureCategory {
+  TEP_ACCOUNT_MISSING
+  INVALID_CUSTOMER_DATA
+  DUPLICATE_ORG_MEMBERSHIP
+  LICENCE_CONFIG_ERROR
+  INTEGRATION_FAULT
+  UNCATEGORISED
 }
 
 enum SourceStatus {
@@ -93,6 +103,13 @@ model Order {
   orderState           String?         @map("order_state")
   licenceOrderMatch    String?         @map("licence_order_match")
   licenceIsbnMatch     String?         @map("licence_isbn_match")
+  // Denormalised summary of the latest unresolved provisioning failure for this
+  // order number. Kept on the order so queues, filters and the rule engine can
+  // use it without a join; the provisioning_failures table remains the record
+  // of truth, including history and resolution.
+  provisioningCategory FailureCategory? @map("provisioning_category")
+  provisioningOwner    String?          @map("provisioning_owner")
+  provisioningFailedAt DateTime?        @map("provisioning_failed_at")
   classification       Classification?
   classificationReason String?         @map("classification_reason")
   classifiedAt         DateTime?       @map("classified_at")
@@ -117,6 +134,7 @@ model Order {
   @@index([customerName])
   @@index([customerEmail])
   @@index([orderSource])
+  @@index([provisioningCategory])
   @@index([importedAt])
   @@map("orders")
 }
@@ -168,6 +186,37 @@ model RuleExecution {
 
   @@index([orderId, evaluationId])
   @@map("rule_executions")
+}
+
+/**
+ * A downstream provisioning failure reported by the daily fulfilment email.
+ * Joined to orders by order number — one failure can cover several order lines,
+ * and a failure may arrive before the order itself is imported.
+ */
+model ProvisioningFailure {
+  id              String          @id @default(uuid()) @db.Uuid
+  orderNumber     String          @map("order_number")
+  contractNumber  String          @default("") @map("contract_number")
+  orderDate       DateTime?       @map("order_date")
+  rawMessage      String          @map("raw_message")
+  category        FailureCategory
+  owner           String
+  suggestedAction String          @map("suggested_action")
+  occurrences     Int             @default(1)
+  firstSeenAt     DateTime        @default(now()) @map("first_seen_at")
+  lastSeenAt      DateTime        @default(now()) @map("last_seen_at")
+  resolvedAt      DateTime?       @map("resolved_at")
+  resolvedBy      String?         @map("resolved_by")
+  resolutionNote  String?         @map("resolution_note")
+  importRunId     String?         @map("import_run_id") @db.Uuid
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+
+  @@unique([orderNumber, contractNumber])
+  @@index([category])
+  @@index([owner])
+  @@index([resolvedAt])
+  @@map("provisioning_failures")
 }
 
 model AuditLog {

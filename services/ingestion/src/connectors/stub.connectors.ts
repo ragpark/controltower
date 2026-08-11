@@ -11,6 +11,7 @@ abstract class PlannedConnector implements SourceConnector {
   abstract readonly type: SourceType;
   abstract readonly configHints: Record<string, string>;
   readonly supportsScheduledFetch = true;
+  readonly supportsUpload = false;
 
   async test(_config: SourceConfig): Promise<ConnectionTestResult> {
     return {

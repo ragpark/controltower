@@ -14,9 +14,15 @@ import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import UploadIcon from '@mui/icons-material/UploadFileOutlined';
 import { DataGrid, type GridColDef, type GridPaginationModel } from '@mui/x-data-grid';
-import { ImportLogEntry, ImportRunDto, SourceType } from '@control-tower/shared-types';
+import { ImportLogEntry, ImportRunDto } from '@control-tower/shared-types';
 import { EmptyState, PageHeader } from '@control-tower/ui-components';
-import { useImportRun, useImportRuns, useSources, useUploadCsv } from '@/lib/queries';
+import {
+  useImportRun,
+  useImportRuns,
+  useSources,
+  useSourceTypes,
+  useUploadCsv,
+} from '@/lib/queries';
 
 const STATUS_COLOR: Record<string, 'success' | 'error' | 'warning' | 'info'> = {
   COMPLETED: 'success',
@@ -39,10 +45,16 @@ export default function ImportsPage() {
     sourceId: sourceFilter || undefined,
   });
   const { data: sources } = useSources();
+  const { data: sourceTypes } = useSourceTypes();
   const { data: selectedRun } = useImportRun(selectedRunId);
   const upload = useUploadCsv();
 
-  const uploadSources = (sources ?? []).filter((s) => s.type === SourceType.CSV_UPLOAD);
+  // Driven by the connector's declared capability, so new upload-based source
+  // types appear here automatically rather than needing this list updated.
+  const uploadableTypes = new Set(
+    (sourceTypes ?? []).filter((t) => t.supportsUpload).map((t) => t.type),
+  );
+  const uploadSources = (sources ?? []).filter((s) => uploadableTypes.has(s.type));
 
   const columns: GridColDef<ImportRunDto>[] = [
     {
@@ -118,7 +130,7 @@ export default function ImportsPage() {
             <input
               ref={fileInputRef}
               type="file"
-              accept=".csv,text/csv"
+              accept=".csv,.txt,text/csv,text/plain"
               hidden
               aria-label="CSV file"
               onChange={(e) => handleFile(e.target.files?.[0] ?? null)}

@@ -68,7 +68,7 @@ export class ImportsController {
     if (!file) throw new BadRequestException('A CSV file is required (field name "file")');
     const name = file.originalname.toLowerCase();
     if (!name.endsWith('.csv') && !name.endsWith('.txt')) {
-      throw new BadRequestException('Only .csv files are supported');
+      throw new BadRequestException('Only .csv and .txt files are supported');
     }
     return this.orchestrator.importUpload(
       body.sourceId,

@@ -7,6 +7,8 @@ import {
   ClassificationRuleDto,
   ConnectionTestResult,
   DashboardSummary,
+  FailureBreakdownItem,
+  ProvisioningFailureDto,
   ImportRunDto,
   OperationalHealth,
   OrderDto,
@@ -233,6 +235,56 @@ export const useRuleMutations = () => {
         queryClient.invalidateQueries({ queryKey: ['orders'] });
         queryClient.invalidateQueries({ queryKey: ['dashboard'] });
       },
+    }),
+  };
+};
+
+// ── Provisioning failures ───────────────────────────────────────────────
+export interface FailuresFilter {
+  page: number;
+  pageSize: number;
+  category?: string;
+  owner?: string;
+  search?: string;
+  includeResolved?: boolean;
+}
+
+export const useFailures = (filter: FailuresFilter) =>
+  useQuery<Paginated<ProvisioningFailureDto>>({
+    queryKey: ['failures', filter],
+    queryFn: () => api.get(`/api/v1/failures${buildQuery({ ...filter })}`),
+    placeholderData: (prev) => prev,
+  });
+
+export const useFailureBreakdown = () =>
+  useQuery<{ byOwner: FailureBreakdownItem[]; byCategory: FailureBreakdownItem[] }>({
+    queryKey: ['failures', 'breakdown'],
+    queryFn: () => api.get('/api/v1/failures/breakdown'),
+  });
+
+export const useOrderFailures = (id: string | null) =>
+  useQuery<ProvisioningFailureDto[]>({
+    queryKey: ['order', id, 'failures'],
+    queryFn: () => api.get(`/api/v1/orders/${id}/failures`),
+    enabled: Boolean(id),
+  });
+
+export const useFailureMutations = () => {
+  const queryClient = useQueryClient();
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ['failures'] });
+    queryClient.invalidateQueries({ queryKey: ['orders'] });
+  };
+  return {
+    resolve: useMutation({
+      mutationFn: ({ id, note }: { id: string; note?: string }) =>
+        api.post(`/api/v1/failures/${id}/resolve`, { note }),
+      onSuccess: invalidate,
+    }),
+    reassign: useMutation({
+      mutationFn: ({ ids, owner }: { ids: string[]; owner: string }) =>
+        api.post('/api/v1/failures/reassign', { ids, owner }),
+      onSuccess: invalidate,
     }),
   };
 };
