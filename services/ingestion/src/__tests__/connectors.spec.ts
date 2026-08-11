@@ -1,0 +1,106 @@
+import { promises as fs } from 'fs';
+import * as os from 'os';
+import * as path from 'path';
+import { SourceType } from '@control-tower/shared-types';
+import { createDefaultConnectorRegistry } from '../connectors/connector-registry';
+import { CsvFileConnector } from '../connectors/csv-file.connector';
+import { jsonArrayToCsv } from '../connectors/rest-api.connector';
+import { ConnectorNotImplementedError } from '../connectors/connector';
+
+describe('ConnectorRegistry', () => {
+  const registry = createDefaultConnectorRegistry();
+
+  it('registers all seven source types', () => {
+    const types = registry.listTypes().map((t) => t.type).sort();
+    expect(types).toEqual(
+      [
+        SourceType.AZURE_BLOB,
+        SourceType.CSV_FILE,
+        SourceType.CSV_UPLOAD,
+        SourceType.REST_API,
+        SourceType.SFTP,
+        SourceType.SHAREPOINT,
+        SourceType.TABLEAU,
+      ].sort(),
+    );
+  });
+
+  it('throws a helpful error for unregistered types', () => {
+    const empty = createDefaultConnectorRegistry();
+    expect(empty.has(SourceType.CSV_UPLOAD)).toBe(true);
+    expect(() => empty.get('NOPE' as SourceType)).toThrow(/No connector registered/);
+  });
+
+  it('upload connector: test ok, fetch returns nothing', async () => {
+    const upload = registry.get(SourceType.CSV_UPLOAD);
+    expect((await upload.test({})).ok).toBe(true);
+    expect(await upload.fetch({})).toEqual([]);
+  });
+
+  it('planned connectors surface as not implemented', async () => {
+    const sftp = registry.get(SourceType.SFTP);
+    expect((await sftp.test({})).ok).toBe(false);
+    await expect(sftp.fetch({})).rejects.toThrow(ConnectorNotImplementedError);
+  });
+});
+
+describe('CsvFileConnector', () => {
+  let dir: string;
+
+  beforeAll(async () => {
+    dir = await fs.mkdtemp(path.join(os.tmpdir(), 'octower-'));
+    await fs.writeFile(path.join(dir, 'orders_a.csv'), 'Order Number,Product Code\nA,B\n');
+    await fs.writeFile(path.join(dir, 'other.txt'), 'not a csv');
+    await fs.writeFile(path.join(dir, 'misc.csv'), 'Order Number,Product Code\nC,D\n');
+  });
+
+  afterAll(async () => {
+    await fs.rm(dir, { recursive: true, force: true });
+  });
+
+  it('fetches only CSV files, honouring the filename pattern', async () => {
+    const connector = new CsvFileConnector(dir);
+    const all = await connector.fetch({ connector: { directory: '.' } });
+    expect(all.map((f) => f.filename).sort()).toEqual(['misc.csv', 'orders_a.csv']);
+
+    const filtered = await connector.fetch({ connector: { directory: '.', pattern: 'orders' } });
+    expect(filtered.map((f) => f.filename)).toEqual(['orders_a.csv']);
+    expect(filtered[0].content.toString()).toContain('Order Number');
+  });
+
+  it('test() reports reachability and file count', async () => {
+    const connector = new CsvFileConnector(dir);
+    const result = await connector.test({ connector: { directory: '.' } });
+    expect(result.ok).toBe(true);
+    expect(result.message).toContain('2 CSV file(s)');
+  });
+
+  it('test() fails for a missing directory', async () => {
+    const connector = new CsvFileConnector(dir);
+    const result = await connector.test({ connector: { directory: './does-not-exist' } });
+    expect(result.ok).toBe(false);
+  });
+
+  it('blocks path traversal outside the base directory', async () => {
+    const connector = new CsvFileConnector(dir);
+    await expect(
+      connector.fetch({ connector: { directory: '../../../../etc' } }),
+    ).rejects.toThrow(/inside the ingestion data directory/);
+  });
+});
+
+describe('jsonArrayToCsv', () => {
+  it('converts a JSON array to CSV with a union of headers and escaping', () => {
+    const csv = jsonArrayToCsv(
+      JSON.stringify([
+        { a: 1, b: 'x,y' },
+        { a: 2, c: 'he said "hi"' },
+      ]),
+    );
+    expect(csv.split('\n')).toEqual(['a,b,c', '1,"x,y",', '2,,"he said ""hi"""']);
+  });
+
+  it('empty array → empty string', () => {
+    expect(jsonArrayToCsv('[]')).toBe('');
+  });
+});

@@ -1,0 +1,202 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum SourceType {
+  CSV_UPLOAD
+  CSV_FILE
+  REST_API
+  SHAREPOINT
+  SFTP
+  AZURE_BLOB
+  TABLEAU
+}
+
+enum SourceStatus {
+  ACTIVE
+  DISABLED
+  ERROR
+}
+
+enum ImportRunStatus {
+  RUNNING
+  COMPLETED
+  COMPLETED_WITH_ERRORS
+  FAILED
+}
+
+enum Classification {
+  PENDING
+  PLACED
+  COMPLETED
+  CANCELLED
+  CUSTOMER_IMPACTED
+  INVESTIGATE_REQUIRED
+  EXCEPTION
+}
+
+model Source {
+  id         String       @id @default(uuid()) @db.Uuid
+  name       String       @unique
+  type       SourceType
+  status     SourceStatus @default(ACTIVE)
+  enabled    Boolean      @default(true)
+  schedule   String?
+  configJson Json         @default("{}") @map("config_json")
+  lastRunAt  DateTime?    @map("last_run_at")
+  createdAt  DateTime     @default(now()) @map("created_at")
+  updatedAt  DateTime     @updatedAt @map("updated_at")
+
+  orders     Order[]
+  importRuns ImportRun[]
+
+  @@map("sources")
+}
+
+model ImportRun {
+  id             String          @id @default(uuid()) @db.Uuid
+  sourceId       String          @map("source_id") @db.Uuid
+  source         Source          @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  filename       String?
+  totalRows      Int             @default(0) @map("total_rows")
+  importedRows   Int             @default(0) @map("imported_rows")
+  successfulRows Int             @default(0) @map("successful_rows")
+  failedRows     Int             @default(0) @map("failed_rows")
+  startTime      DateTime        @default(now()) @map("start_time")
+  endTime        DateTime?       @map("end_time")
+  status         ImportRunStatus @default(RUNNING)
+  log            Json            @default("[]")
+  triggeredBy    String?         @map("triggered_by")
+
+  orders Order[]
+
+  @@index([sourceId, startTime])
+  @@map("import_runs")
+}
+
+model Order {
+  id                   String          @id @default(uuid()) @db.Uuid
+  sourceOrderId        String?         @map("source_order_id")
+  orderNumber          String          @map("order_number")
+  customerId           String?         @map("customer_id")
+  customerName         String?         @map("customer_name")
+  productCode          String          @map("product_code")
+  productName          String?         @map("product_name")
+  orderStatus          String?         @map("order_status")
+  orderState           String?         @map("order_state")
+  classification       Classification?
+  classificationReason String?         @map("classification_reason")
+  classifiedAt         DateTime?       @map("classified_at")
+  quantity             Int?
+  value                Decimal?        @db.Decimal(12, 2)
+  orderDate            DateTime?       @map("order_date")
+  createdAt            DateTime        @default(now()) @map("created_at")
+  updatedAt            DateTime        @updatedAt @map("updated_at")
+  importedAt           DateTime        @default(now()) @map("imported_at")
+  sourceFile           String?         @map("source_file")
+  sourceId             String?         @map("source_id") @db.Uuid
+  source               Source?         @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  importRunId          String?         @map("import_run_id") @db.Uuid
+  importRun            ImportRun?      @relation(fields: [importRunId], references: [id], onDelete: SetNull)
+
+  history        OrderHistory[]
+  ruleExecutions RuleExecution[]
+
+  @@unique([orderNumber, productCode])
+  @@index([classification])
+  @@index([orderDate])
+  @@index([customerName])
+  @@index([importedAt])
+  @@map("orders")
+}
+
+model OrderHistory {
+  id            String   @id @default(uuid()) @db.Uuid
+  orderId       String   @map("order_id") @db.Uuid
+  order         Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  snapshot      Json
+  changedFields String[] @map("changed_fields")
+  importRunId   String?  @map("import_run_id") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@index([orderId, createdAt])
+  @@map("order_history")
+}
+
+model ClassificationRule {
+  id             String         @id @default(uuid()) @db.Uuid
+  name           String         @unique
+  description    String?
+  priority       Int
+  enabled        Boolean        @default(true)
+  strategy       String         @default("field-match")
+  ruleDefinition Json           @map("rule_definition")
+  outcome        Classification
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
+
+  ruleExecutions RuleExecution[]
+
+  @@index([priority])
+  @@map("classification_rules")
+}
+
+model RuleExecution {
+  id           String              @id @default(uuid()) @db.Uuid
+  orderId      String              @map("order_id") @db.Uuid
+  order        Order               @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  ruleId       String?             @map("rule_id") @db.Uuid
+  rule         ClassificationRule? @relation(fields: [ruleId], references: [id], onDelete: SetNull)
+  ruleName     String              @map("rule_name")
+  priority     Int
+  matched      Boolean
+  outcome      Classification?
+  detail       Json?
+  evaluationId String              @map("evaluation_id") @db.Uuid
+  evaluatedAt  DateTime            @default(now()) @map("evaluated_at")
+
+  @@index([orderId, evaluationId])
+  @@map("rule_executions")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid()) @db.Uuid
+  entityType String   @map("entity_type")
+  entityId   String   @map("entity_id")
+  action     String
+  changedBy  String   @map("changed_by")
+  changes    Json?
+  timestamp  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([timestamp])
+  @@map("audit_logs")
+}
+
+model SavedView {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  queue     String
+  config    Json     @default("{}")
+  createdBy String   @map("created_by")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([queue, name, createdBy])
+  @@map("saved_views")
+}
+
+model DailyAggregate {
+  id             String         @id @default(uuid()) @db.Uuid
+  date           DateTime       @db.Date
+  classification Classification
+  count          Int            @default(0)
+
+  @@unique([date, classification])
+  @@map("daily_aggregates")
+}

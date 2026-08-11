@@ -1,0 +1,55 @@
+name: order-control-tower
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: octower
+      POSTGRES_PASSWORD: octower
+      POSTGRES_DB: octower
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U octower -d octower']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: ../..
+      dockerfile: apps/api/Dockerfile
+    environment:
+      DATABASE_URL: postgresql://octower:octower@db:5432/octower?schema=public
+      API_PORT: '4000'
+      CORS_ORIGINS: http://localhost:3000
+      AUTH_ENABLED: 'false'
+      SEED_ON_START: 'true'
+      INGESTION_DATA_DIR: /data/inbox
+      LOG_FORMAT: json
+      OTEL_ENABLED: 'false'
+    ports:
+      - '4000:4000'
+    volumes:
+      - ingestion-inbox:/data/inbox
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ../..
+      dockerfile: apps/web/Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:4000
+        NEXT_PUBLIC_AUTH_ENABLED: 'false'
+    ports:
+      - '3000:3000'
+    depends_on:
+      - api
+
+volumes:
+  pgdata:
+  ingestion-inbox:
