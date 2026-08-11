@@ -10,6 +10,7 @@ import {
   FetchedFile,
   NormalizedOrder,
   parseCsvOrders,
+  parseFailureReport,
 } from '@control-tower/ingestion';
 import {
   EVENTS,
@@ -22,6 +23,7 @@ import { ImportRun, Order, Prisma, Source } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { ClassificationService } from '../rules/classification.service';
 import { MetricsService } from '../observability/metrics.service';
+import { FailuresService } from '../failures/failures.service';
 
 /**
  * Ingestion orchestration pipeline:
@@ -38,6 +40,7 @@ export class OrchestratorService {
     private readonly events: EventEmitter2,
     private readonly classification: ClassificationService,
     private readonly metrics: MetricsService,
+    private readonly failures: FailuresService,
     config: ConfigService,
   ) {
     this.connectors = createDefaultConnectorRegistry({
@@ -119,6 +122,10 @@ export class OrchestratorService {
   }
 
   async importFile(source: Source, file: FetchedFile, actor: string): Promise<ImportRun> {
+    if (source.type === SourceType.EMAIL_FAILURE_REPORT) {
+      return this.importFailureReport(source, file, actor);
+    }
+
     const run = await this.createRun(source, file.filename, actor);
     const started = Date.now();
     const log: ImportLogEntry[] = [logEntry('info', `Importing ${file.filename}`)];
@@ -218,6 +225,85 @@ export class OrchestratorService {
         importRunId: run.id,
         sourceId: source.id,
         successfulRows: successful,
+        failedRows,
+        actor,
+      });
+      return completed;
+    } catch (error) {
+      return this.failRun(run, source, error, actor);
+    }
+  }
+
+  /**
+   * Provisioning failure reports follow a different pipeline: they describe why
+   * an order failed downstream rather than carrying order data, so they update
+   * the failure register and the orders' provisioning summary instead of
+   * creating orders.
+   */
+  private async importFailureReport(
+    source: Source,
+    file: FetchedFile,
+    actor: string,
+  ): Promise<ImportRun> {
+    const run = await this.createRun(source, file.filename, actor);
+    const started = Date.now();
+    const log: ImportLogEntry[] = [
+      logEntry('info', `Importing provisioning failure report ${file.filename}`),
+    ];
+
+    try {
+      const parsed = parseFailureReport(file.content);
+      for (const error of parsed.errors) {
+        log.push(logEntry('warn', error.message, error.record));
+      }
+
+      const summary = await this.failures.applyReport(parsed.failures, actor, run.id);
+
+      log.push(
+        logEntry(
+          'info',
+          `${summary.received} failure(s): ${summary.created} new, ${summary.updated} recurring, ` +
+            `${summary.autoResolved} auto-resolved after reconciliation. ` +
+            `Linked to ${summary.linkedOrders} order line(s).`,
+        ),
+      );
+      if (summary.unmatchedOrderNumbers.length > 0) {
+        log.push(
+          logEntry(
+            'warn',
+            `No order imported yet for order number(s): ${summary.unmatchedOrderNumbers.join(', ')}. ` +
+              'These link automatically once the order arrives.',
+          ),
+        );
+      }
+
+      const failedRows = parsed.errors.length;
+      const status =
+        failedRows > 0 ? ImportRunStatus.COMPLETED_WITH_ERRORS : ImportRunStatus.COMPLETED;
+
+      const completed = await this.prisma.importRun.update({
+        where: { id: run.id },
+        data: {
+          status,
+          endTime: new Date(),
+          totalRows: parsed.totalRecords,
+          importedRows: summary.received,
+          successfulRows: summary.received,
+          failedRows,
+          log: log as unknown as Prisma.InputJsonValue,
+        },
+      });
+      await this.prisma.source.update({
+        where: { id: source.id },
+        data: { lastRunAt: new Date(), status: 'ACTIVE' },
+      });
+
+      this.metrics.importRuns.inc({ status });
+      this.metrics.importDuration.observe((Date.now() - started) / 1000);
+      this.events.emit(EVENTS.IMPORT_COMPLETED, {
+        importRunId: run.id,
+        sourceId: source.id,
+        successfulRows: summary.received,
         failedRows,
         actor,
       });

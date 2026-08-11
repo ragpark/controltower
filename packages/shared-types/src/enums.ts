@@ -26,6 +26,7 @@ export enum SourceType {
   SFTP = 'SFTP',
   AZURE_BLOB = 'AZURE_BLOB',
   TABLEAU = 'TABLEAU',
+  EMAIL_FAILURE_REPORT = 'EMAIL_FAILURE_REPORT',
 }
 
 export const SOURCE_TYPE_LABELS: Record<SourceType, string> = {
@@ -36,6 +37,7 @@ export const SOURCE_TYPE_LABELS: Record<SourceType, string> = {
   [SourceType.SFTP]: 'SFTP',
   [SourceType.AZURE_BLOB]: 'Azure Blob Storage',
   [SourceType.TABLEAU]: 'Tableau export',
+  [SourceType.EMAIL_FAILURE_REPORT]: 'Provisioning failure report (email)',
 };
 
 export enum SourceStatus {

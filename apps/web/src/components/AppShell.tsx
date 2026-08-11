@@ -24,6 +24,7 @@ import CancelledIcon from '@mui/icons-material/CancelOutlined';
 import ExceptionIcon from '@mui/icons-material/ErrorOutlineOutlined';
 import OrdersIcon from '@mui/icons-material/ListAltOutlined';
 import ImportsIcon from '@mui/icons-material/CloudUploadOutlined';
+import FailuresIcon from '@mui/icons-material/BuildCircleOutlined';
 import SourcesIcon from '@mui/icons-material/HubOutlined';
 import RulesIcon from '@mui/icons-material/RuleOutlined';
 import MenuIcon from '@mui/icons-material/Menu';
@@ -48,7 +49,10 @@ const NAV = [
   },
   {
     section: 'Operations',
-    items: [{ href: '/imports', label: 'Import History', icon: <ImportsIcon /> }],
+    items: [
+      { href: '/failures', label: 'Provisioning Failures', icon: <FailuresIcon /> },
+      { href: '/imports', label: 'Import History', icon: <ImportsIcon /> },
+    ],
   },
   {
     section: 'Settings',

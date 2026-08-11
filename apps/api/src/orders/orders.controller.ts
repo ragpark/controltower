@@ -65,6 +65,12 @@ export class OrdersController {
     return this.orders.auditTrail(id);
   }
 
+  @Get(':id/failures')
+  @Roles(Role.VIEWER)
+  failures(@Param('id', ParseUUIDPipe) id: string) {
+    return this.orders.provisioningFailures(id);
+  }
+
   @Post('bulk')
   @Roles(Role.OPERATOR)
   bulk(@Body() dto: BulkOrdersDto, @CurrentUser() user: ApiUser) {

@@ -22,6 +22,7 @@ import { useAppStore } from '@/store';
 import {
   useOrder,
   useOrderAudit,
+  useOrderFailures,
   useOrderHistory,
   useOrderRelated,
   useOrderTrace,
@@ -61,6 +62,7 @@ export function OrderDrawer() {
   const { data: history } = useOrderHistory(selectedOrderId);
   const { data: related } = useOrderRelated(selectedOrderId);
   const { data: audit } = useOrderAudit(selectedOrderId);
+  const { data: failures } = useOrderFailures(selectedOrderId);
 
   return (
     <Drawer
@@ -99,6 +101,7 @@ export function OrderDrawer() {
             sx={{ px: 1 }}
           >
             <Tab label="Details" />
+            <Tab label={`Provisioning (${failures?.length ?? 0})`} />
             <Tab label={`Rule trace (${trace?.length ?? 0})`} />
             <Tab label={`History (${history?.length ?? 0})`} />
             <Tab label={`Related (${related?.length ?? 0})`} />
@@ -177,6 +180,51 @@ export function OrderDrawer() {
 
             {tab === 1 && (
               <Stack spacing={1.5}>
+                {(failures ?? []).map((failure) => (
+                  <Box
+                    key={failure.id}
+                    sx={{
+                      p: 1.5,
+                      border: '1px solid',
+                      borderColor: failure.resolvedAt ? 'divider' : 'error.main',
+                      borderRadius: 2,
+                      bgcolor: failure.resolvedAt ? 'transparent' : 'rgba(185,28,28,0.04)',
+                    }}
+                  >
+                    <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
+                      <Chip size="small" color="primary" variant="outlined" label={failure.owner} />
+                      <Chip size="small" label={failure.category} variant="outlined" />
+                      {failure.resolvedAt && <Chip size="small" color="success" label="Resolved" />}
+                      <Box sx={{ flexGrow: 1 }} />
+                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                        seen {failure.occurrences}×
+                      </Typography>
+                    </Stack>
+                    <Typography
+                      variant="caption"
+                      sx={{ display: 'block', mt: 1, fontFamily: 'monospace' }}
+                    >
+                      {failure.rawMessage}
+                    </Typography>
+                    <Typography variant="body2" sx={{ mt: 1 }}>
+                      <strong>Next step:</strong> {failure.suggestedAction}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                      Contract {failure.contractNumber || '—'} · last seen{' '}
+                      {fmtDate(failure.lastSeenAt)}
+                    </Typography>
+                  </Box>
+                ))}
+                {(failures ?? []).length === 0 && (
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                    No downstream provisioning failures reported for this order.
+                  </Typography>
+                )}
+              </Stack>
+            )}
+
+            {tab === 2 && (
+              <Stack spacing={1.5}>
                 {(trace ?? []).map((entry) => (
                   <Box
                     key={entry.id}
@@ -225,7 +273,7 @@ export function OrderDrawer() {
               </Stack>
             )}
 
-            {tab === 2 && (
+            {tab === 3 && (
               <Stack spacing={1.5}>
                 {(history ?? []).map((entry) => (
                   <Box key={entry.id} sx={{ p: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>
@@ -245,7 +293,7 @@ export function OrderDrawer() {
               </Stack>
             )}
 
-            {tab === 3 && (
+            {tab === 4 && (
               <List dense disablePadding>
                 {(related ?? []).map((r) => (
                   <ListItemButton key={r.id} onClick={() => openOrder(r.id)} sx={{ borderRadius: 1.5 }}>
@@ -264,7 +312,7 @@ export function OrderDrawer() {
               </List>
             )}
 
-            {tab === 4 && (
+            {tab === 5 && (
               <Stack spacing={1.5}>
                 {(audit ?? []).map((entry) => (
                   <Box key={entry.id} sx={{ p: 1.5, border: '1px solid', borderColor: 'divider', borderRadius: 2 }}>

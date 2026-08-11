@@ -10,19 +10,27 @@ import { ConnectorNotImplementedError } from '../connectors/connector';
 describe('ConnectorRegistry', () => {
   const registry = createDefaultConnectorRegistry();
 
-  it('registers all seven source types', () => {
+  it('registers every source type', () => {
     const types = registry.listTypes().map((t) => t.type).sort();
     expect(types).toEqual(
       [
         SourceType.AZURE_BLOB,
         SourceType.CSV_FILE,
         SourceType.CSV_UPLOAD,
+        SourceType.EMAIL_FAILURE_REPORT,
         SourceType.REST_API,
         SourceType.SFTP,
         SourceType.SHAREPOINT,
         SourceType.TABLEAU,
       ].sort(),
     );
+  });
+
+  it('the failure report source is upload-only', async () => {
+    const connector = registry.get(SourceType.EMAIL_FAILURE_REPORT);
+    expect(connector.supportsScheduledFetch).toBe(false);
+    expect((await connector.test({})).ok).toBe(true);
+    expect(await connector.fetch({})).toEqual([]);
   });
 
   it('throws a helpful error for unregistered types', () => {

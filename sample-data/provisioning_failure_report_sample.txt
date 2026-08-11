@@ -1,0 +1,29 @@
+  Order Number   :        13925034                                            
+  Order Date     : 06-AUG-2026                                                
+  Contract Number: 8030959                                                    
+  Error Message  : Status: CUSTOMER_ID or OrgId from TEP is NULL(GPSFlow      
+                   ValidationError)                                           
+                                                                              
+  Order Number   :        13925051                                            
+  Order Date     : 06-AUG-2026                                                
+  Contract Number: 8030971                                                    
+  Error Message  : Status:GPS-invokeCreateGPSApi:HTTP/1.1 400 Bad Request.    
+                   lastName contains invalid characters                       
+                                                                              
+  Order Number   :        13923556                                            
+  Order Date     : 06-AUG-2026                                                
+  Contract Number: 8030885                                                    
+  Error Message  : Status:HTTP/1.1 404. GET License: AES sent API fault to    
+                   middleware                                                 
+                                                                              
+  Order Number   :        13925030                                            
+  Order Date     : 06-AUG-2026                                                
+  Contract Number: 8030957                                                    
+  Error Message  : Status:GPS-invokeRegisterGPS:HTTP/1.1 400 Bad Request. User
+                   already part of another organization in Active Hub         
+                                                                              
+  Order Number   :        13924593                                            
+  Order Date     : 06-AUG-2026                                                
+  Contract Number: 8030944                                                    
+  Error Message  : Create License Error : Status:HTTP/1.1 400. autoRenew:     
+                   Autorenew must be YES or NO.                               

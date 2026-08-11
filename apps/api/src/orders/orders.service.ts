@@ -167,6 +167,15 @@ export class OrdersService {
     });
   }
 
+  /** Provisioning failures for this order, joined by order number. */
+  async provisioningFailures(id: string) {
+    const order = await this.get(id);
+    return this.prisma.provisioningFailure.findMany({
+      where: { orderNumber: order.orderNumber },
+      orderBy: { lastSeenAt: 'desc' },
+    });
+  }
+
   auditTrail(id: string) {
     return this.prisma.auditLog.findMany({
       where: { entityType: 'order', entityId: id },
