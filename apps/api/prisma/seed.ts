@@ -1,124 +1,17 @@
 /* eslint-disable no-console */
-import { PrismaClient, Classification, SourceType } from '@prisma/client';
+import { PrismaClient, SourceType } from '@prisma/client';
+import {
+  CLASSIFICATION_RULES,
+  DEFAULT_MAPPING,
+  isLegacyMapping,
+  SUPERSEDED_RULE_NAMES,
+  SUPERSEDED_SOURCE_NAMES,
+} from './seed-data';
 
 const prisma = new PrismaClient();
 
-const DEFAULT_MAPPING = {
-  sourceOrderId: 'Source Order Id',
-  orderNumber: 'Order Number',
-  customerId: 'Customer Id',
-  customerName: 'Customer Name',
-  productCode: 'Product Code',
-  productName: 'Product Name',
-  orderStatus: 'Order Status',
-  orderState: 'Order State',
-  quantity: 'Quantity',
-  value: 'Value',
-  orderDate: 'Order Date',
-};
-
 async function seedRules() {
-  const rules = [
-    {
-      name: 'Cancelled orders',
-      description: 'Raw status indicates cancellation',
-      priority: 10,
-      strategy: 'field-match',
-      ruleDefinition: {
-        match: 'any',
-        conditions: [
-          { field: 'orderStatus', operator: 'in', value: ['Cancelled', 'Canceled', 'Void'] },
-          { field: 'orderState', operator: 'contains', value: 'cancel' },
-        ],
-      },
-      outcome: Classification.CANCELLED,
-    },
-    {
-      name: 'Customer impacted — failed delivery',
-      description: 'Delivery failures and returns impact the customer',
-      priority: 20,
-      strategy: 'field-match',
-      ruleDefinition: {
-        match: 'any',
-        conditions: [
-          { field: 'orderStatus', operator: 'in', value: ['Delivery Failed', 'Returned', 'On Hold - Customer'] },
-          { field: 'orderState', operator: 'contains', value: 'impact' },
-        ],
-      },
-      outcome: Classification.CUSTOMER_IMPACTED,
-    },
-    {
-      name: 'Completed orders',
-      description: 'Delivered / fulfilled orders',
-      priority: 30,
-      strategy: 'field-match',
-      ruleDefinition: {
-        match: 'any',
-        conditions: [
-          { field: 'orderStatus', operator: 'in', value: ['Delivered', 'Completed', 'Fulfilled', 'Closed'] },
-        ],
-      },
-      outcome: Classification.COMPLETED,
-    },
-    {
-      name: 'Data quality exception',
-      description: 'Orders missing a customer cannot be processed',
-      priority: 40,
-      strategy: 'field-match',
-      ruleDefinition: {
-        conditions: [{ field: 'customerName', operator: 'isEmpty' }],
-      },
-      outcome: Classification.EXCEPTION,
-    },
-    {
-      name: 'Stale open order',
-      description: 'Placed over 21 days ago and still not completed',
-      priority: 50,
-      strategy: 'order-age',
-      ruleDefinition: {
-        olderThanDays: 21,
-        dateField: 'orderDate',
-        whenStatusIn: ['Placed', 'Processing', 'Picked', 'Shipped'],
-      },
-      outcome: Classification.INVESTIGATE_REQUIRED,
-    },
-    {
-      name: 'Placed orders',
-      description: 'Order accepted and in fulfilment',
-      priority: 60,
-      strategy: 'field-match',
-      ruleDefinition: {
-        match: 'any',
-        conditions: [
-          { field: 'orderStatus', operator: 'in', value: ['Placed', 'Processing', 'Picked', 'Shipped'] },
-        ],
-      },
-      outcome: Classification.PLACED,
-    },
-    {
-      name: 'Pending orders',
-      description: 'Awaiting confirmation or payment',
-      priority: 70,
-      strategy: 'field-match',
-      ruleDefinition: {
-        match: 'any',
-        conditions: [
-          { field: 'orderStatus', operator: 'in', value: ['Pending', 'Awaiting Payment', 'Draft', 'New'] },
-        ],
-      },
-      outcome: Classification.PENDING,
-    },
-    {
-      name: 'Catch-all — investigate',
-      description: 'Anything unrecognised needs a human eye',
-      priority: 1000,
-      strategy: 'always',
-      ruleDefinition: {},
-      outcome: Classification.INVESTIGATE_REQUIRED,
-    },
-  ];
-
-  for (const rule of rules) {
+  for (const rule of CLASSIFICATION_RULES) {
     await prisma.classificationRule.upsert({
       where: { name: rule.name },
       create: rule,
@@ -131,14 +24,31 @@ async function seedRules() {
       },
     });
   }
-  console.log(`Seeded ${rules.length} classification rules`);
+  console.log(`Seeded ${CLASSIFICATION_RULES.length} classification rules`);
+}
+
+/**
+ * Disable rules from earlier releases that the current set replaces. Left
+ * enabled they compete on equal priorities with their replacements, and the
+ * engine's alphabetical tie-break can hand the decision to the obsolete rule.
+ */
+async function retireSupersededRules() {
+  const { count } = await prisma.classificationRule.updateMany({
+    where: { name: { in: SUPERSEDED_RULE_NAMES }, enabled: true },
+    data: { enabled: false },
+  });
+  if (count > 0) {
+    console.log(`Disabled ${count} superseded classification rule(s)`);
+  }
 }
 
 async function seedSources() {
+  // update:{} on both — source configuration is operator-editable in Settings
+  // and must survive a restart. Stale mappings are handled by the migration below.
   await prisma.source.upsert({
-    where: { name: 'Manual CSV upload' },
+    where: { name: 'ActiveHub manual upload' },
     create: {
-      name: 'Manual CSV upload',
+      name: 'ActiveHub manual upload',
       type: SourceType.CSV_UPLOAD,
       enabled: true,
       configJson: { mapping: DEFAULT_MAPPING, delimiter: ',' },
@@ -146,14 +56,14 @@ async function seedSources() {
     update: {},
   });
   await prisma.source.upsert({
-    where: { name: 'Warehouse file drop' },
+    where: { name: 'ActiveHub scheduled export' },
     create: {
-      name: 'Warehouse file drop',
+      name: 'ActiveHub scheduled export',
       type: SourceType.CSV_FILE,
       enabled: true,
       schedule: '*/15 * * * *',
       configJson: {
-        connector: { directory: '.', pattern: 'orders' },
+        connector: { directory: '.', pattern: 'activehub' },
         mapping: DEFAULT_MAPPING,
         delimiter: ',',
       },
@@ -163,9 +73,62 @@ async function seedSources() {
   console.log('Seeded default sources');
 }
 
+/**
+ * Disable the sources seeded by earlier releases. The old scheduled source
+ * matches filenames by substring ("orders"), which overlaps the ActiveHub
+ * source's pattern — left enabled, both cron jobs import the same files every
+ * 15 minutes. Disabled rather than deleted so imported orders keep their
+ * provenance; an operator can re-enable from Settings.
+ */
+async function retireSupersededSources() {
+  const { count } = await prisma.source.updateMany({
+    where: { name: { in: SUPERSEDED_SOURCE_NAMES }, enabled: true },
+    data: { enabled: false, status: 'DISABLED' },
+  });
+  if (count > 0) {
+    console.log(
+      `Disabled ${count} superseded source(s): ${SUPERSEDED_SOURCE_NAMES.join(', ')}`,
+    );
+  }
+}
+
+/**
+ * Sources created from the pre-alignment template carry a mapping built for the
+ * placeholder headers "Order Number" / "Product Code". Applied to a real
+ * ActiveHub export that mapping matches nothing, so every row fails validation.
+ * Only the exact legacy template is rewritten — a custom mapping that happens to
+ * use one of those header names is legitimate and left untouched.
+ */
+async function migrateLegacyMappings() {
+  const sources = await prisma.source.findMany();
+  let migrated = 0;
+
+  for (const source of sources) {
+    const config = (source.configJson ?? {}) as {
+      mapping?: Record<string, unknown>;
+      [key: string]: unknown;
+    };
+    if (!isLegacyMapping(config.mapping)) continue;
+
+    await prisma.source.update({
+      where: { id: source.id },
+      data: { configJson: { ...config, mapping: DEFAULT_MAPPING } },
+    });
+    migrated += 1;
+    console.log(`Migrated legacy column mapping on source "${source.name}"`);
+  }
+
+  if (migrated > 0) {
+    console.log(`Migrated ${migrated} source(s) to the ActiveHub column mapping`);
+  }
+}
+
 async function main() {
   await seedRules();
+  await retireSupersededRules();
   await seedSources();
+  await retireSupersededSources();
+  await migrateLegacyMappings();
 }
 
 main()

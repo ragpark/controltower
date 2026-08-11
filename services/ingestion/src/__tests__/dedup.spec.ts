@@ -5,12 +5,16 @@ function order(partial: Partial<NormalizedOrder>): NormalizedOrder {
   return {
     sourceOrderId: null,
     orderNumber: 'ORD-1',
+    orderSource: null,
     customerId: null,
     customerName: null,
+    customerEmail: null,
     productCode: 'P-1',
     productName: null,
     orderStatus: null,
     orderState: null,
+    licenceOrderMatch: null,
+    licenceIsbnMatch: null,
     quantity: null,
     value: null,
     orderDate: null,
@@ -69,6 +73,16 @@ describe('changedFields', () => {
 
   it('treats null, undefined and empty string as equivalent', () => {
     expect(changedFields({ customerName: '' }, order({ customerName: null }))).toEqual([]);
+  });
+
+  it('detects Licence Manager reconciliation flips', () => {
+    const existing = { licenceOrderMatch: 'Not Match', licenceIsbnMatch: 'Not Match' };
+    expect(
+      changedFields(
+        existing,
+        order({ licenceOrderMatch: 'Match', licenceIsbnMatch: 'Match' }),
+      ),
+    ).toEqual(['licenceOrderMatch', 'licenceIsbnMatch']);
   });
 
   it('compares dates by instant regardless of representation', () => {

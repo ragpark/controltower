@@ -87,8 +87,13 @@ flowchart TB
 2. **Fetch** — the connector for the source type retrieves file(s)
    (`services/ingestion` connector registry — strategy pattern, new connectors
    register without touching the orchestrator).
-3. **Parse & map** — CSV parsed with a per-source column mapping (configured in the UI).
-4. **Validate** — required fields, types; row-level failures recorded on the import run log.
+3. **Parse & map** — CSV parsed with a per-source column mapping (configured in
+   the UI). Defaults target the ActiveHub export headers. BOM, CRLF and the
+   thousands of empty filler rows Excel appends are handled transparently.
+4. **Validate** — required fields, types; row-level failures recorded on the
+   import run log. Product codes exported in scientific notation
+   (`9.78141E+12`) are rejected rather than expanded, because the lost digits
+   would collapse distinct ISBNs onto one deduplication key.
 5. **Deduplicate** — natural key `(orderNumber, productCode)`; existing orders are
    updated and a full snapshot is written to `order_history`.
 6. **Classify** — the rule engine evaluates enabled rules in priority order;

@@ -41,17 +41,33 @@ interface SourceForm {
   configText: string;
 }
 
+/**
+ * New sources start from the ActiveHub export mapping — the format the
+ * platform ingests by default. Only orderNumber and productCode are required;
+ * unmapped fields are simply left empty on the order.
+ */
+const ACTIVEHUB_MAPPING = {
+  orderSource: 'order_source',
+  orderNumber: 'order_id',
+  orderState: 'Custom Status',
+  orderStatus: 'order_status',
+  orderDate: 'order_created_date_time',
+  customerName: 'full_name',
+  customerEmail: 'email',
+  customerId: 'TEPAccountNumber',
+  productCode: 'productcode',
+  productName: 'productlongname',
+  licenceOrderMatch: 'LicenceManagerOrderMatch',
+  licenceIsbnMatch: 'LicenceManagerISBNMatch',
+};
+
 const EMPTY_FORM: SourceForm = {
   name: '',
   type: SourceType.CSV_UPLOAD,
   schedule: '',
   enabled: true,
   configText: JSON.stringify(
-    {
-      connector: {},
-      mapping: { orderNumber: 'Order Number', productCode: 'Product Code' },
-      delimiter: ',',
-    },
+    { connector: {}, mapping: ACTIVEHUB_MAPPING, delimiter: ',' },
     null,
     2,
   ),

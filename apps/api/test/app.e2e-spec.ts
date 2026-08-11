@@ -51,9 +51,10 @@ d('Order Control Tower API (e2e)', () => {
     sourceId = create.body.id;
 
     const csv = [
-      'Order Number,Product Code,Customer Name,Order Status,Quantity,Value,Order Date',
-      `E2E-${Date.now()},SKU-1,Test Customer,Cancelled,1,10.00,2026-08-01`,
-    ].join('\n');
+      'order_source,order_id,Custom Status,order_status,order_created_date_time,full_name,email,TEPAccountNumber,productcode,productlongname,LicenceManagerOrderMatch,LicenceManagerISBNMatch',
+      `Big Commerce,E2E-${Date.now()},Order Cancelled,Cancelled,01/08/2026 10:00,Test Customer,test@example.com,TEP0000001,9781410009999,E2E Product,Not Match,Not Match`,
+      ',,,,,,,,,,,',
+    ].join('\r\n');
 
     const upload = await request(app.getHttpServer())
       .post('/api/v1/imports/upload')
@@ -62,7 +63,10 @@ d('Order Control Tower API (e2e)', () => {
       .expect(201);
 
     expect(upload.body.successfulRows).toBe(1);
-    expect(['COMPLETED', 'COMPLETED_WITH_ERRORS']).toContain(upload.body.status);
+    // the trailing filler row must not be counted or reported as a failure
+    expect(upload.body.totalRows).toBe(1);
+    expect(upload.body.failedRows).toBe(0);
+    expect(upload.body.status).toBe('COMPLETED');
 
     const orders = await request(app.getHttpServer())
       .get('/api/v1/orders')

@@ -26,6 +26,9 @@ export class OrdersService {
     if (query.productCode)
       where.productCode = { contains: query.productCode, mode: 'insensitive' };
     if (query.orderState) where.orderState = { contains: query.orderState, mode: 'insensitive' };
+    if (query.orderSource) where.orderSource = query.orderSource;
+    if (query.licenceOrderMatch) where.licenceOrderMatch = query.licenceOrderMatch;
+    if (query.licenceIsbnMatch) where.licenceIsbnMatch = query.licenceIsbnMatch;
     if (query.dateFrom || query.dateTo) {
       where.orderDate = {
         ...(query.dateFrom ? { gte: new Date(query.dateFrom) } : {}),
@@ -36,6 +39,7 @@ export class OrdersService {
       where.OR = [
         { orderNumber: { contains: query.search, mode: 'insensitive' } },
         { customerName: { contains: query.search, mode: 'insensitive' } },
+        { customerEmail: { contains: query.search, mode: 'insensitive' } },
         { customerId: { contains: query.search, mode: 'insensitive' } },
         { productCode: { contains: query.search, mode: 'insensitive' } },
         { productName: { contains: query.search, mode: 'insensitive' } },
@@ -87,13 +91,18 @@ export class OrdersService {
     return stringify(
       orders.map((o) => ({
         'Order Number': o.orderNumber,
+        'Order Source': o.orderSource,
         'Product Code': o.productCode,
         'Product Name': o.productName,
-        'Customer Id': o.customerId,
+        'Account Number': o.customerId,
         'Customer Name': o.customerName,
+        Email: o.customerEmail,
         'Order Status': o.orderStatus,
-        'Order State': o.orderState,
+        'Custom Status': o.orderState,
+        'Licence Order Match': o.licenceOrderMatch,
+        'Licence ISBN Match': o.licenceIsbnMatch,
         Classification: o.classification,
+        'Classification Reason': o.classificationReason,
         Quantity: o.quantity,
         Value: o.value?.toString() ?? '',
         'Order Date': o.orderDate?.toISOString() ?? '',

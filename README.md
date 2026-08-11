@@ -49,9 +49,10 @@ docker compose -f infrastructure/docker-compose/docker-compose.yml up --build
 
 - Web: http://localhost:3000 · API: http://localhost:4000 · Swagger: http://localhost:4000/api/docs
 - Migrations apply and default rules/sources seed automatically.
-- Go to **Import History**, pick the *Manual CSV upload* source and upload
-  [`sample-data/orders_sample.csv`](sample-data/orders_sample.csv), then
-  `orders_update_sample.csv` to see dedup + record history + reclassification.
+- Go to **Import History**, pick the *ActiveHub manual upload* source and upload
+  [`sample-data/activehub_orders_sample.csv`](sample-data/activehub_orders_sample.csv),
+  then `activehub_orders_update_sample.csv` to see dedup + record history +
+  reclassification.
 
 ## Quick start (local development)
 
@@ -94,11 +95,28 @@ cleanly in the UI. All source configuration (connector settings, column
 mapping, delimiter, schedule) is editable in **Settings → Data Sources**,
 including *Test connection*, *Run now* and per-source import history.
 
+### Data model
+
+The canonical order model targets the **ActiveHub orders export** — BigCommerce
+orders reconciled against Licence Manager — carrying the sales channel, customer
+name/email/TEP account, ISBN, store status, custom status and the two Licence
+Manager match flags. Every source maps its own headers onto these canonical
+fields in Settings, so the model is not tied to one export format. See
+[`sample-data/README.md`](sample-data/README.md) for the full column mapping.
+
+Two real-world export hazards are handled explicitly: sheets padded with
+thousands of empty rows are skipped (not counted, not reported as errors), and
+ISBNs that Excel mangled into scientific notation (`9.78141E+12`) are **rejected
+with actionable guidance** rather than expanded — expanding them would collapse
+every ISBN sharing a prefix onto one deduplication key.
+
 ### Deduplication & history
 
 Natural key **(orderNumber, productCode)** — a unique constraint enforces it.
 Re-imports update the existing order; the previous state is snapshotted into
 `order_history` with the changed fields, and changed orders are re-classified.
+A licence flag flipping `Not Match` → `Match` therefore moves the order out of
+the Customer Impacted queue automatically, with the change recorded in history.
 
 ### Rule engine
 
