@@ -16,12 +16,16 @@ export interface RowError {
 export interface NormalizedOrder {
   sourceOrderId: string | null;
   orderNumber: string;
+  orderSource: string | null;
   customerId: string | null;
   customerName: string | null;
+  customerEmail: string | null;
   productCode: string;
   productName: string | null;
   orderStatus: string | null;
   orderState: string | null;
+  licenceOrderMatch: string | null;
+  licenceIsbnMatch: string | null;
   quantity: number | null;
   value: number | null;
   orderDate: Date | null;

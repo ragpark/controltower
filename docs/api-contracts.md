@@ -20,7 +20,7 @@ Paginated list shape:
 
 | Method | Path | Role | Description |
 |---|---|---|---|
-| GET | `/orders` | viewer | Paged list. Query: `page`, `pageSize`, `search`, `classification`, `sourceId`, `customerName`, `productCode`, `orderState`, `dateFrom`, `dateTo`, `sortBy`, `sortDir` |
+| GET | `/orders` | viewer | Paged list. Query: `page`, `pageSize`, `search`, `classification`, `sourceId`, `orderSource`, `customerName`, `productCode`, `orderState`, `licenceOrderMatch`, `licenceIsbnMatch`, `dateFrom`, `dateTo`, `sortBy`, `sortDir`. `search` spans order number, customer name/email/account, product code and name |
 | GET | `/orders/export` | viewer | CSV export with the same filters |
 | GET | `/orders/:id` | viewer | Order detail: order + source + latest import run |
 | GET | `/orders/:id/trace` | viewer | Rule execution trace of latest evaluation (grouped by `evaluationId`) |

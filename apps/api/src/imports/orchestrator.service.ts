@@ -236,11 +236,15 @@ export class OrchestratorService {
 
     const data = {
       sourceOrderId: normalized.sourceOrderId,
+      orderSource: normalized.orderSource,
       customerId: normalized.customerId,
       customerName: normalized.customerName,
+      customerEmail: normalized.customerEmail,
       productName: normalized.productName,
       orderStatus: normalized.orderStatus,
       orderState: normalized.orderState,
+      licenceOrderMatch: normalized.licenceOrderMatch,
+      licenceIsbnMatch: normalized.licenceIsbnMatch,
       quantity: normalized.quantity,
       value: normalized.value,
       orderDate: normalized.orderDate,

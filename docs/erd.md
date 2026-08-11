@@ -44,12 +44,16 @@ erDiagram
         uuid id PK
         text source_order_id
         text order_number "UK with product_code"
-        text customer_id
+        text order_source "sales channel, e.g. Big Commerce"
+        text customer_id "TEP account number"
         text customer_name
-        text product_code "UK with order_number"
+        text customer_email
+        text product_code "UK with order_number — ISBN"
         text product_name
         text order_status "raw status from source"
-        text order_state "normalised operational state"
+        text order_state "Custom Status from source"
+        text licence_order_match "Licence Manager: Match | Not Match"
+        text licence_isbn_match "Licence Manager: Match | Not Match"
         Classification classification "PENDING | PLACED | COMPLETED | CANCELLED | CUSTOMER_IMPACTED | INVESTIGATE_REQUIRED | EXCEPTION"
         text classification_reason
         timestamptz classified_at
@@ -135,4 +139,14 @@ erDiagram
 | `order_history.order_id` FK cascade | History travels with the order |
 | `rule_executions.rule_id` FK `SET NULL` | Trace survives rule deletion (name retained) |
 | `daily_aggregates (date, classification)` unique | Idempotent aggregate upserts |
-| Indexes on `orders.classification`, `orders.order_date`, `orders.customer_name`, `audit_logs (entity_type, entity_id)` | Queue filtering, trends, audit drill-down |
+| Indexes on `orders.classification`, `orders.order_date`, `orders.customer_name`, `orders.customer_email`, `orders.order_source`, `audit_logs (entity_type, entity_id)` | Queue filtering, trends, audit drill-down |
+
+## Source data model
+
+The canonical `orders` table is populated from the **ActiveHub orders export**
+(BigCommerce orders reconciled against Licence Manager) via the per-source
+column mapping in `sources.config_json`. The two `licence_*_match` columns drive
+the highest-value rules: an order that is `Complete` in the store but
+`Not Match` in Licence Manager means the customer has paid and cannot access the
+product — classified **Customer Impacted**. Other sources map their own headers
+onto the same canonical fields, so the model is not tied to one export format.

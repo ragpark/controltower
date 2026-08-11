@@ -4,8 +4,11 @@ import { SourceStatus, SourceType } from './enums';
 export interface ColumnMapping {
   sourceOrderId?: string;
   orderNumber: string;
+  /** Sales channel the order originated from, e.g. "Big Commerce". */
+  orderSource?: string;
   customerId?: string;
   customerName?: string;
+  customerEmail?: string;
   productCode: string;
   productName?: string;
   orderStatus?: string;
@@ -13,6 +16,10 @@ export interface ColumnMapping {
   quantity?: string;
   value?: string;
   orderDate?: string;
+  /** Licence Manager reconciliation: does the order match a licence record? */
+  licenceOrderMatch?: string;
+  /** Licence Manager reconciliation: does the ISBN match the licensed product? */
+  licenceIsbnMatch?: string;
 }
 
 export interface SourceConfig {

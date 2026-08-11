@@ -14,10 +14,15 @@ import { PaginationQuery } from '../common/pagination.dto';
 
 export const ORDER_SORT_FIELDS = [
   'orderNumber',
+  'orderSource',
   'customerName',
+  'customerEmail',
   'productCode',
   'productName',
   'orderStatus',
+  'orderState',
+  'licenceOrderMatch',
+  'licenceIsbnMatch',
   'classification',
   'orderDate',
   'importedAt',
@@ -51,6 +56,18 @@ export class ListOrdersQuery extends PaginationQuery {
   @IsOptional()
   @IsString()
   orderState?: string;
+
+  @IsOptional()
+  @IsString()
+  orderSource?: string;
+
+  @IsOptional()
+  @IsString()
+  licenceOrderMatch?: string;
+
+  @IsOptional()
+  @IsString()
+  licenceIsbnMatch?: string;
 
   @IsOptional()
   @IsDateString()

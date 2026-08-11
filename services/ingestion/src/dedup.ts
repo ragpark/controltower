@@ -32,11 +32,15 @@ export function dedupeWithinBatch(orders: NormalizedOrder[]): DedupResult {
 /** Fields compared when deciding whether an existing order actually changed. */
 export const COMPARABLE_FIELDS: (keyof NormalizedOrder)[] = [
   'sourceOrderId',
+  'orderSource',
   'customerId',
   'customerName',
+  'customerEmail',
   'productName',
   'orderStatus',
   'orderState',
+  'licenceOrderMatch',
+  'licenceIsbnMatch',
   'quantity',
   'value',
   'orderDate',

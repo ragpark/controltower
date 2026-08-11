@@ -48,6 +48,21 @@ export interface OrdersGridProps {
   classification?: Classification;
 }
 
+/** Licence Manager reconciliation flag — "Not Match" is the actionable state. */
+function MatchChip({ value }: { value: string | null }) {
+  if (!value) return <>—</>;
+  const isMatch = value.trim().toLowerCase() === 'match';
+  return (
+    <Chip
+      size="small"
+      label={value}
+      variant="outlined"
+      color={isMatch ? 'success' : 'error'}
+      sx={{ fontWeight: 600 }}
+    />
+  );
+}
+
 interface ViewConfig {
   search?: string;
   sourceId?: string;
@@ -95,11 +110,26 @@ export function OrdersGrid({ queue, classification }: OrdersGridProps) {
 
   const columns = useMemo<GridColDef<OrderDto>[]>(
     () => [
-      { field: 'orderNumber', headerName: 'Order #', width: 130 },
-      { field: 'productCode', headerName: 'Product code', width: 130 },
-      { field: 'productName', headerName: 'Product', flex: 1, minWidth: 160 },
-      { field: 'customerName', headerName: 'Customer', flex: 1, minWidth: 160 },
-      { field: 'orderStatus', headerName: 'Raw status', width: 130 },
+      { field: 'orderNumber', headerName: 'Order #', width: 100 },
+      { field: 'orderSource', headerName: 'Channel', width: 120 },
+      { field: 'productCode', headerName: 'ISBN', width: 140 },
+      { field: 'productName', headerName: 'Product', flex: 1, minWidth: 200 },
+      { field: 'customerName', headerName: 'Customer', width: 150 },
+      { field: 'customerEmail', headerName: 'Email', flex: 1, minWidth: 180 },
+      { field: 'orderStatus', headerName: 'Order status', width: 130 },
+      { field: 'orderState', headerName: 'Custom status', width: 140 },
+      {
+        field: 'licenceOrderMatch',
+        headerName: 'LM order',
+        width: 110,
+        renderCell: (params) => <MatchChip value={params.value as string | null} />,
+      },
+      {
+        field: 'licenceIsbnMatch',
+        headerName: 'LM ISBN',
+        width: 110,
+        renderCell: (params) => <MatchChip value={params.value as string | null} />,
+      },
       {
         field: 'classification',
         headerName: 'Classification',
@@ -108,20 +138,20 @@ export function OrdersGrid({ queue, classification }: OrdersGridProps) {
           <StatusChip classification={params.value as Classification | null} />
         ),
       },
-      { field: 'quantity', headerName: 'Qty', width: 80, type: 'number' },
+      { field: 'quantity', headerName: 'Qty', width: 70, type: 'number' },
       {
         field: 'value',
         headerName: 'Value',
-        width: 110,
+        width: 100,
         type: 'number',
         valueFormatter: (value: string | null) => (value == null ? '' : Number(value).toFixed(2)),
       },
       {
         field: 'orderDate',
         headerName: 'Order date',
-        width: 120,
+        width: 150,
         valueFormatter: (value: string | null) =>
-          value ? new Date(value).toLocaleDateString() : '',
+          value ? new Date(value).toLocaleString() : '',
       },
       { field: 'sourceName', headerName: 'Source', width: 150, sortable: false },
       {

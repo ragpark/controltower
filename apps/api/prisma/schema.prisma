@@ -83,12 +83,16 @@ model Order {
   id                   String          @id @default(uuid()) @db.Uuid
   sourceOrderId        String?         @map("source_order_id")
   orderNumber          String          @map("order_number")
+  orderSource          String?         @map("order_source")
   customerId           String?         @map("customer_id")
   customerName         String?         @map("customer_name")
+  customerEmail        String?         @map("customer_email")
   productCode          String          @map("product_code")
   productName          String?         @map("product_name")
   orderStatus          String?         @map("order_status")
   orderState           String?         @map("order_state")
+  licenceOrderMatch    String?         @map("licence_order_match")
+  licenceIsbnMatch     String?         @map("licence_isbn_match")
   classification       Classification?
   classificationReason String?         @map("classification_reason")
   classifiedAt         DateTime?       @map("classified_at")
@@ -111,6 +115,8 @@ model Order {
   @@index([classification])
   @@index([orderDate])
   @@index([customerName])
+  @@index([customerEmail])
+  @@index([orderSource])
   @@index([importedAt])
   @@map("orders")
 }

@@ -1,18 +1,24 @@
 import { ColumnMapping } from '@control-tower/shared-types';
 import { NormalizedOrder } from './types';
 
+/**
+ * Default mapping targets the ActiveHub orders export (BigCommerce orders
+ * reconciled against Licence Manager). Any source can override this in
+ * Settings → Data Sources.
+ */
 export const DEFAULT_MAPPING: ColumnMapping = {
-  sourceOrderId: 'Source Order Id',
-  orderNumber: 'Order Number',
-  customerId: 'Customer Id',
-  customerName: 'Customer Name',
-  productCode: 'Product Code',
-  productName: 'Product Name',
-  orderStatus: 'Order Status',
-  orderState: 'Order State',
-  quantity: 'Quantity',
-  value: 'Value',
-  orderDate: 'Order Date',
+  orderSource: 'order_source',
+  orderNumber: 'order_id',
+  orderState: 'Custom Status',
+  orderStatus: 'order_status',
+  orderDate: 'order_created_date_time',
+  customerName: 'full_name',
+  customerEmail: 'email',
+  customerId: 'TEPAccountNumber',
+  productCode: 'productcode',
+  productName: 'productlongname',
+  licenceOrderMatch: 'LicenceManagerOrderMatch',
+  licenceIsbnMatch: 'LicenceManagerISBNMatch',
 };
 
 function pick(row: Record<string, string>, header?: string): string | null {
@@ -33,13 +39,24 @@ function parseNumber(raw: string | null): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+/**
+ * Spreadsheet exports frequently turn long numeric identifiers (ISBNs, account
+ * numbers) into scientific notation — "9.78141E+12". The original digits are
+ * unrecoverable, and expanding the value would collapse every ISBN sharing a
+ * prefix onto one code. Since productCode is half of the deduplication key,
+ * such rows are rejected rather than silently merged.
+ */
+export function isScientificNotation(value: string): boolean {
+  return /^[+-]?\d+(\.\d+)?[eE][+-]?\d+$/.test(value.trim());
+}
+
 export function parseDate(raw: string | null): Date | null {
   if (!raw) return null;
-  // dd/mm/yyyy (UK export format) or ISO
-  const uk = /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2}))?$/.exec(raw);
+  // dd/mm/yyyy [hh:mm[:ss]] (UK export format) or ISO
+  const uk = /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2}))?)?$/.exec(raw);
   if (uk) {
-    const [, d, m, y, hh = '0', mm = '0'] = uk;
-    const date = new Date(Date.UTC(+y, +m - 1, +d, +hh, +mm));
+    const [, d, m, y, hh = '0', mm = '0', ss = '0'] = uk;
+    const date = new Date(Date.UTC(+y, +m - 1, +d, +hh, +mm, +ss));
     return Number.isNaN(date.getTime()) ? null : date;
   }
   const date = new Date(raw);
@@ -62,6 +79,13 @@ export function normalizeRow(
   const productCode = pick(row, mapping.productCode);
   if (!orderNumber) errors.push(`Missing required field "${mapping.orderNumber}"`);
   if (!productCode) errors.push(`Missing required field "${mapping.productCode}"`);
+
+  if (productCode && isScientificNotation(productCode)) {
+    errors.push(
+      `Product code "${productCode}" was exported in scientific notation and has lost digits — ` +
+        're-export with the column formatted as text',
+    );
+  }
 
   const rawQuantity = pick(row, mapping.quantity);
   const quantity = parseNumber(rawQuantity);
@@ -87,12 +111,16 @@ export function normalizeRow(
     order: {
       sourceOrderId: pick(row, mapping.sourceOrderId),
       orderNumber: orderNumber as string,
+      orderSource: pick(row, mapping.orderSource),
       customerId: pick(row, mapping.customerId),
       customerName: pick(row, mapping.customerName),
+      customerEmail: pick(row, mapping.customerEmail),
       productCode: productCode as string,
       productName: pick(row, mapping.productName),
       orderStatus: pick(row, mapping.orderStatus),
       orderState: pick(row, mapping.orderState),
+      licenceOrderMatch: pick(row, mapping.licenceOrderMatch),
+      licenceIsbnMatch: pick(row, mapping.licenceIsbnMatch),
       quantity,
       value,
       orderDate,

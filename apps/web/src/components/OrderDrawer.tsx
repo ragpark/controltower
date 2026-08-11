@@ -44,6 +44,11 @@ function fmtDate(value: string | null | undefined): string {
   return value ? new Date(value).toLocaleString() : '—';
 }
 
+function matchColor(value: string | null | undefined): 'success' | 'error' | 'default' {
+  if (!value) return 'default';
+  return value.trim().toLowerCase() === 'match' ? 'success' : 'error';
+}
+
 /**
  * Order detail side panel: full order info, classification explanation,
  * rule execution trace, version history, related orders and audit trail.
@@ -123,18 +128,46 @@ export function OrderDrawer() {
                     Classified {fmtDate(order.classifiedAt)}
                   </Typography>
                 </Box>
+                <Box
+                  sx={{
+                    p: 2,
+                    borderRadius: 2,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                  }}
+                >
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                    Licence Manager reconciliation
+                  </Typography>
+                  <Stack direction="row" spacing={1} sx={{ mt: 0.5 }}>
+                    <Chip
+                      size="small"
+                      variant="outlined"
+                      color={matchColor(order.licenceOrderMatch)}
+                      label={`Order: ${order.licenceOrderMatch ?? '—'}`}
+                    />
+                    <Chip
+                      size="small"
+                      variant="outlined"
+                      color={matchColor(order.licenceIsbnMatch)}
+                      label={`ISBN: ${order.licenceIsbnMatch ?? '—'}`}
+                    />
+                  </Stack>
+                </Box>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2.5 }}>
                   <Field label="Order number" value={order.orderNumber} />
+                  <Field label="Sales channel" value={order.orderSource} />
                   <Field label="Source order id" value={order.sourceOrderId} />
                   <Field label="Customer" value={order.customerName} />
-                  <Field label="Customer id" value={order.customerId} />
+                  <Field label="Email" value={order.customerEmail} />
+                  <Field label="Account number" value={order.customerId} />
                   <Field label="Product" value={order.productName} />
-                  <Field label="Product code" value={order.productCode} />
-                  <Field label="Raw status" value={order.orderStatus} />
-                  <Field label="Order state" value={order.orderState} />
+                  <Field label="ISBN / product code" value={order.productCode} />
+                  <Field label="Order status" value={order.orderStatus} />
+                  <Field label="Custom status" value={order.orderState} />
                   <Field label="Quantity" value={order.quantity} />
                   <Field label="Value" value={order.value} />
-                  <Field label="Order date" value={fmtDate(order.orderDate)} />
+                  <Field label="Order created" value={fmtDate(order.orderDate)} />
                   <Field label="Imported" value={fmtDate(order.importedAt)} />
                   <Field label="Source file" value={order.sourceFile} />
                   <Field label="Source" value={(order as { source?: { name?: string } }).source?.name} />
