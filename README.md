@@ -1,6 +1,6 @@
 # Order Control Tower
 
-A production-ready operational platform that replaces an Excel order dashboard:
+A production-ready operational platform that replaces the Tableau/ Excel order dashboard:
 configurable data-source ingestion, a database-driven classification rule
 engine, operational queues, executive dashboards, and full audit/traceability —
 built as a modern SaaS-style web application.
