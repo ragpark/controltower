@@ -6,6 +6,7 @@ import {
   ConnectorRegistry,
   createDefaultConnectorRegistry,
   dedupeWithinBatch,
+  describeDelimiter,
   FetchedFile,
   NormalizedOrder,
   parseCsvOrders,
@@ -128,6 +129,17 @@ export class OrchestratorService {
         mapping: config.mapping,
         delimiter: config.delimiter,
       });
+      const configured = config.delimiter || ',';
+      if (parsed.delimiter !== configured) {
+        log.push(
+          logEntry(
+            'warn',
+            `File is ${describeDelimiter(parsed.delimiter)}-separated, not ` +
+              `${describeDelimiter(configured)}-separated — parsed with the detected ` +
+              'delimiter. Update the source\'s "delimiter" setting to silence this.',
+          ),
+        );
+      }
       for (const err of parsed.errors) {
         log.push(logEntry('error', err.message, err.row));
       }

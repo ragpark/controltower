@@ -1,4 +1,4 @@
-import { isBlankRow, parseCsvOrders } from '../csv-parser';
+import { describeDelimiter, detectDelimiter, isBlankRow, parseCsvOrders } from '../csv-parser';
 
 const HEADER =
   'order_source,order_id,Custom Status,order_status,order_created_date_time,full_name,email,TEPAccountNumber,productcode,productlongname,LicenceManagerOrderMatch,LicenceManagerISBNMatch';
@@ -149,7 +149,8 @@ describe('column mapping mismatch', () => {
     const csv = 'colA,colB\n1,2\n';
     const [error] = parseCsvOrders(csv, { mapping: LEGACY_MAPPING }).errors;
     expect(error.message).not.toContain('built-in ActiveHub mapping matches');
-    expect(error.message).toContain('colA, colB');
+    // headers are JSON-quoted so tabs and zero-width characters are visible
+    expect(error.message).toContain('"colA", "colB"');
   });
 
   it('flags a mapping that omits a required field entirely', () => {
@@ -162,6 +163,76 @@ describe('column mapping mismatch', () => {
 
   it('accepts a correct mapping and imports normally', () => {
     expect(parseCsvOrders(CSV).errors.every((e) => e.row > 0)).toBe(true);
+  });
+});
+
+describe('delimiter detection', () => {
+  const COLUMNS = [
+    'order_source', 'order_id', 'Custom Status', 'order_status',
+    'order_created_date_time', 'full_name', 'email', 'TEPAccountNumber',
+    'productcode', 'productlongname', 'LicenceManagerOrderMatch', 'LicenceManagerISBNMatch',
+  ];
+  const VALUES = [
+    'Big Commerce', '136', 'Order Pending', 'Incomplete', '11/02/2026 13:04',
+    'Alexa Foley', 'a@b.com', '', '9781410000001', 'KS4 Maths', 'Match', 'Match',
+  ];
+  const build = (d: string) => `${COLUMNS.join(d)}\n${VALUES.join(d)}\n`;
+
+  // Excel's "Text"/"Unicode Text" save options emit tabs while keeping a .csv
+  // name; parsed as comma-separated the whole header becomes one column.
+  it.each([
+    ['\t', 'tab'],
+    [';', 'semicolon'],
+    ['|', 'pipe'],
+  ])('imports a %s-separated file even though the source says comma', (delimiter) => {
+    const result = parseCsvOrders(build(delimiter), { delimiter: ',' });
+    expect(result.delimiter).toBe(delimiter);
+    expect(result.errors).toEqual([]);
+    expect(result.orders).toHaveLength(1);
+    expect(result.orders[0]).toMatchObject({
+      orderNumber: '136',
+      productCode: '9781410000001',
+      licenceIsbnMatch: 'Match',
+    });
+  });
+
+  it('keeps the configured delimiter when it already splits the header', () => {
+    const result = parseCsvOrders(build(','), { delimiter: ',' });
+    expect(result.delimiter).toBe(',');
+    expect(result.orders).toHaveLength(1);
+  });
+
+  it('respects an explicitly configured non-comma delimiter', () => {
+    expect(detectDelimiter(build(';'), ';')).toBe(';');
+  });
+
+  it('falls back to the configured delimiter for a single-column file', () => {
+    expect(detectDelimiter('order_id\nA-1\n', ',')).toBe(',');
+  });
+
+  it('handles empty content without throwing', () => {
+    expect(detectDelimiter('', ',')).toBe(',');
+  });
+
+  it('names delimiters in human terms for the import log', () => {
+    expect(describeDelimiter('\t')).toBe('tab');
+    expect(describeDelimiter(',')).toBe('comma');
+    expect(describeDelimiter('^')).toBe('"^"');
+  });
+});
+
+describe('invisible characters in headers', () => {
+  it('matches headers containing zero-width spaces, BOMs and non-breaking spaces', () => {
+    const header =
+      '\uFEFForder_source,\u200Border_id,\u00A0productcode\u200B';
+    const result = parseCsvOrders(`${header}\nBig Commerce,136,9781410000001\n`, {
+      mapping: { orderNumber: 'order_id', productCode: 'productcode' },
+    });
+    expect(result.errors).toEqual([]);
+    expect(result.orders[0]).toMatchObject({
+      orderNumber: '136',
+      productCode: '9781410000001',
+    });
   });
 });
 

@@ -35,6 +35,8 @@ export interface ParseResult {
   orders: NormalizedOrder[];
   errors: RowError[];
   totalRows: number;
+  /** Delimiter actually used — may differ from the configured one if detected. */
+  delimiter: string;
 }
 
 export type { SourceConfig };
