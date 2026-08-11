@@ -46,21 +46,25 @@ export function RangeMetricPills({
   metrics,
   caption,
   onSelect,
+  state = 'ready',
 }: {
   metrics: RangeMetric[];
   caption?: string;
   onSelect?: (metric: RangeMetric) => void;
+  /** A zero is a claim about the data; never show one before it has arrived. */
+  state?: 'loading' | 'error' | 'ready';
 }) {
+  const pending = state !== 'ready';
   return (
-    <Box>
+    <Box aria-busy={state === 'loading'}>
       {caption ? (
         <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.75 }}>
-          {caption}
+          {state === 'loading' ? 'Loading…' : state === 'error' ? 'Trend unavailable' : caption}
         </Typography>
       ) : null}
       <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap>
         {metrics.map((metric) => {
-          const interactive = Boolean(onSelect && metric.classification);
+          const interactive = Boolean(onSelect && metric.classification) && !pending;
           return (
             <Box
               key={metric.key}
@@ -78,6 +82,7 @@ export function RangeMetricPills({
                     'aria-label': `${metric.label}: ${metric.value} in the selected range`,
                   }
                 : {})}
+              {...(pending ? { 'aria-label': `${metric.label}: not yet available` } : {})}
               sx={{
                 display: 'flex',
                 alignItems: 'baseline',
@@ -105,15 +110,22 @@ export function RangeMetricPills({
                   width: 8,
                   height: 8,
                   borderRadius: '50%',
-                  bgcolor: metric.color,
+                  bgcolor: pending ? 'text.disabled' : metric.color,
                   alignSelf: 'center',
                 }}
               />
               <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                 {metric.label}
               </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 700, color: metric.color }}>
-                {metric.value.toLocaleString()}
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 700,
+                  color: pending ? 'text.disabled' : metric.color,
+                  fontVariantNumeric: 'tabular-nums',
+                }}
+              >
+                {pending ? '—' : metric.value.toLocaleString()}
               </Typography>
             </Box>
           );

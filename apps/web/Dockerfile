@@ -4,17 +4,22 @@ WORKDIR /repo
 
 COPY package.json package-lock.json* ./
 COPY tsconfig.base.json ./
+# Every workspace the web app depends on must be present before npm install,
+# or the workspace links cannot resolve and the Next build fails on the import.
 COPY packages/shared-types/package.json packages/shared-types/
 COPY packages/ui-components/package.json packages/ui-components/
+COPY services/reporting/package.json services/reporting/
 COPY apps/web/package.json apps/web/
 RUN npm install --workspaces --include-workspace-root --ignore-scripts
 
 COPY packages/shared-types packages/shared-types
 COPY packages/ui-components packages/ui-components
+COPY services/reporting services/reporting
 COPY apps/web apps/web
 
-# shared-types is consumed from dist by its package.json main
-RUN npm run build -w @control-tower/shared-types
+# shared-types and reporting are consumed from dist via their package.json main
+RUN npm run build -w @control-tower/shared-types \
+ && npm run build -w @control-tower/reporting
 
 ARG NEXT_PUBLIC_API_URL=http://localhost:4000
 ARG NEXT_PUBLIC_AUTH_ENABLED=false

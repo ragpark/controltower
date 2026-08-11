@@ -58,16 +58,26 @@ export default function DashboardPage() {
   const { data: byStatus } = useBreakdown('by-status');
   const { data: byProduct } = useBreakdown('by-product');
   const { data: bySource } = useBreakdown('by-source');
-  const { data: trend } = useTrend(granularity, RANGE_DAYS[granularity]);
+  const {
+    data: trend,
+    isPending: trendPending,
+    isError: trendError,
+  } = useTrend(granularity, RANGE_DAYS[granularity]);
   const { data: health } = useOperationalHealth();
 
   // Derived from the buckets the chart is rendering, so the pills and the bars
   // can never tell different stories.
   const rangeSummary = summariseTrend(trend ?? []);
   const rangeMetrics = buildRangeMetrics(rangeSummary.total, rangeSummary.byClassification);
-  const rangeCaption = `${RANGE_LABEL[granularity]}${
-    rangeSummary.from && rangeSummary.to ? ` · ${rangeSummary.from} to ${rangeSummary.to}` : ''
-  }`;
+
+  // The window actually queried, not the first/last bucket — a monthly bucket
+  // starts on the 1st, so bucket bounds would understate the current month.
+  const windowFrom = new Date(Date.now() - RANGE_DAYS[granularity] * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+  const windowTo = new Date().toISOString().slice(0, 10);
+  const rangeCaption = `${RANGE_LABEL[granularity]} · ${windowFrom} to ${windowTo}`;
+  const trendState = trendPending ? 'loading' : trendError ? 'error' : 'ready';
 
   const cards: Array<{ label: string; value: number; classification?: Classification }> = [
     { label: 'Total orders', value: summary?.total ?? 0 },
@@ -119,11 +129,14 @@ export default function DashboardPage() {
               <RangeMetricPills
                 metrics={rangeMetrics}
                 caption={rangeCaption}
-                onSelect={(metric) =>
-                  metric.classification && QUEUE_LINKS[metric.classification]
-                    ? router.push(QUEUE_LINKS[metric.classification]!)
-                    : undefined
-                }
+                state={trendState}
+                onSelect={(metric) => {
+                  const href =
+                    metric.classification && QUEUE_LINKS[metric.classification];
+                  // Carry the window through, or the queue would list all
+                  // history and contradict the figure that was clicked.
+                  if (href) router.push(`${href}?dateFrom=${windowFrom}&dateTo=${windowTo}`);
+                }}
               />
             </Box>
             <Box sx={{ height: 240 }}>
