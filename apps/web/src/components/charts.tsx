@@ -3,8 +3,6 @@ import Box from '@mui/material/Box';
 import Card from '@mui/material/Card';
 import Typography from '@mui/material/Typography';
 import {
-  Area,
-  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
@@ -22,6 +20,7 @@ import {
   Classification,
   CLASSIFICATION_LABELS,
   TrendBucket,
+  TrendGranularity,
 } from '@control-tower/shared-types';
 import { CLASSIFICATION_COLORS } from '@control-tower/ui-components';
 
@@ -46,34 +45,58 @@ export function ChartCard({
   );
 }
 
-export function TrendChart({ data }: { data: TrendBucket[] }) {
+/** Bucket keys are ISO dates; monthly buckets read better as "Aug 2026". */
+function formatBucket(bucket: string, granularity: TrendGranularity): string {
+  const date = new Date(`${bucket}T00:00:00Z`);
+  if (Number.isNaN(date.getTime())) return bucket;
+  if (granularity === 'monthly') {
+    return date.toLocaleDateString(undefined, { month: 'short', year: '2-digit', timeZone: 'UTC' });
+  }
+  return date.toLocaleDateString(undefined, { day: '2-digit', month: 'short', timeZone: 'UTC' });
+}
+
+export function TrendChart({
+  data,
+  granularity,
+}: {
+  data: TrendBucket[];
+  granularity: TrendGranularity;
+}) {
   const series = Object.values(Classification);
   const rows = data.map((bucket) => ({
-    bucket: bucket.bucket.slice(5), // MM-DD
+    bucket: formatBucket(bucket.bucket, granularity),
     total: bucket.total,
-    ...bucket.byClassification,
+    // absent classifications must be 0, not undefined, or the stack gaps
+    ...Object.fromEntries(series.map((c) => [c, bucket.byClassification[c] ?? 0])),
   }));
+
   return (
     <ResponsiveContainer>
-      <AreaChart data={rows} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#E4E7EC" />
-        <XAxis dataKey="bucket" tick={{ fontSize: 11 }} />
+      <BarChart data={rows} margin={{ top: 4, right: 8, left: -16, bottom: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#E4E7EC" vertical={false} />
+        <XAxis dataKey="bucket" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
         <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-        <Tooltip />
+        <Tooltip
+          cursor={{ fill: 'rgba(16,24,40,0.04)' }}
+          formatter={(value, name) => [
+            value,
+            CLASSIFICATION_LABELS[name as Classification] ?? name,
+          ]}
+        />
         <Legend formatter={(value) => CLASSIFICATION_LABELS[value as Classification] ?? value} />
-        {series.map((classification) => (
-          <Area
+        {series.map((classification, index) => (
+          <Bar
             key={classification}
-            type="monotone"
-            stackId="1"
+            stackId="orders"
             dataKey={classification}
             name={classification}
-            stroke={CLASSIFICATION_COLORS[classification]}
             fill={CLASSIFICATION_COLORS[classification]}
-            fillOpacity={0.35}
+            maxBarSize={48}
+            // round only the top of the stack
+            radius={index === series.length - 1 ? [3, 3, 0, 0] : undefined}
           />
         ))}
-      </AreaChart>
+      </BarChart>
     </ResponsiveContainer>
   );
 }
