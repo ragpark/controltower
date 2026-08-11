@@ -1,0 +1,5 @@
+Source Order Id,Order Number,Customer Id,Customer Name,Product Code,Product Name,Order Status,Order State,Quantity,Value,Order Date
+SRC-90002,ORD-1002,CUST-002,Brighton Academy,PRD-ENG201,English Literature Pack,Delivered,Fulfilled,45,675.00,28/07/2026
+SRC-90003,ORD-1003,CUST-003,Cavendish College,PRD-SCI110,Science Lab Workbook,Placed,In Fulfilment,30,390.00,05/08/2026
+SRC-90007,ORD-1007,CUST-007,Greenwood Prep,PRD-MAT300,Advanced Mathematics,Delivery Failed,Customer impacted,15,525.00,02/08/2026
+SRC-90024,ORD-1024,CUST-024,York Gate Academy,PRD-GEO120,World Geography Atlas,Placed,In Fulfilment,38,646.00,11/08/2026
