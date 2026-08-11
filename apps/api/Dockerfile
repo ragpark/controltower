@@ -20,6 +20,8 @@ COPY apps/api apps/api
 RUN npm run prisma:generate -w @control-tower/api \
  && npm run build:libs \
  && npm run build:api \
+ && npx tsc apps/api/prisma/seed.ts --outDir apps/api/dist-seed \
+      --module commonjs --target ES2022 --esModuleInterop --skipLibCheck \
  && npm prune --omit=dev
 
 # ── Runtime stage ───────────────────────────────────────────────────────
@@ -31,6 +33,7 @@ COPY --from=build /repo/node_modules ./node_modules
 COPY --from=build /repo/packages ./packages
 COPY --from=build /repo/services ./services
 COPY --from=build /repo/apps/api/dist ./apps/api/dist
+COPY --from=build /repo/apps/api/dist-seed ./apps/api/dist-seed
 COPY --from=build /repo/apps/api/prisma ./apps/api/prisma
 COPY --from=build /repo/apps/api/package.json ./apps/api/
 COPY apps/api/docker-entrypoint.sh ./apps/api/docker-entrypoint.sh
