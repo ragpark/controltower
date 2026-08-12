@@ -33,7 +33,6 @@ specification:
     delivery_context: >-
       New internal platform replacing a manually maintained Excel dashboard for
       order lifecycle visibility across the ActiveHub order-to-provision journey.
-      Software was delivered before this specification existed; 
     accountable_owner: null
     created_by: mysites@cluepony.com
     created_at: '2026-08-12'
@@ -75,7 +74,7 @@ specification:
       patch_version: 0
       version_history_required: true
       change_summary: >-
-        Initial retrofit of the specification record from six merged delivery
+        Initial specification record from six merged delivery
         increments (PR #1 to PR #6).
     collaboration:
       multi_user_contribution: true
