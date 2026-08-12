@@ -156,16 +156,18 @@ input rather than blaming the user.
 - **The YAML is normative. The Markdown pack is generated** — do not hand-edit
   `control-tower-delivery-pack.md`. *(The generator is not yet built; until it
   is, treat any divergence as a defect in the pack, not in the YAML.)*
-- **`review_and_warnings_summary` is derived, not hand-maintained.** It is
-  currently wrong: it reports 18 open blockers and 11 open questions, while
-  `certification.blockers` holds 22 entries (17 critical / 5 material, 2 closed
-  by reconciliation) and `open_questions` holds 13. Recount from the lists; do
-  not copy the summary.
-- **Traceability currently dangles.** `traceability.links` references
+- **`review_and_warnings_summary` is derived, not hand-maintained.** Recount
+  from the lists rather than copying it. The blocker counts were wrong (18/15/3
+  against a list holding 22 open) and were corrected in delta **SD-01**; the
+  open-question count of 11 was correct — 13 raised, 2 closed by
+  reconciliation. **ENG-902** makes the recount mechanical.
+- **Traceability currently dangles — BLK-18.** `traceability.links` references
   `FR-01…FR-19`, `TC-01…TC-18`, `ADR-01…ADR-15`, `UX-J01…J05` and `C-01…C-08`,
-  whose definitions were condensed out of AHCTL-02 and survive only in git
-  history (commit `c880653`). Until they are restored, do not assume an ID
-  referenced in the matrix is defined in the record.
+  whose definitions were condensed out of AHCTL-02 and survive only in the
+  delivery pack and in git history (commit `c880653`). Until **ENG-900**
+  restores them, do not assume an ID in the matrix is defined in the record —
+  and do not generate the pack from the YAML, which would destroy the
+  surviving copy.
 - Add a `contribution_log` entry for every change to the record.
 
 ## Open items Claude must not silently decide

@@ -30,8 +30,13 @@ specification:
   metadata:
     spec_id: AHCTL-02
     title: ActiveHub Control Tower
-    version: 1.0.0-draft
+    version: 1.1.0-draft
     status: draft
+    pending_ratification:
+      delta: SD-01
+      summary: Spec-operations tooling — see engineering.spec_operations
+      prepared_by: claude-agent
+      awaiting: accountable_owner_ratification
     classification: internal
     business_unit: null
     product_area: ActiveHub
@@ -90,13 +95,19 @@ specification:
       submitted_version: null
     versioning:
       major_version: 1
-      minor_version: 0
+      minor_version: 1
       patch_version: 0
       version_history_required: true
       change_summary: >-
-        Initial AHCTL-02 record. Content inherited from OCT-001 (six merged
-        delivery increments) with attribution preserved. Reconciliation
-        decision recorded: AHCTL-02 supersedes OCT-001.
+        SD-01 spec delta: adds spec-operations tooling (G-07, ADR-16, ADR-17,
+        ENG-900…906), registers CLAUDE.md retroactively, and corrects the
+        derived blocker counts. Prepared by agent; awaiting ratification.
+      previous_versions:
+        - version: 1.0.0-draft
+          summary: >-
+            Initial AHCTL-02 record. Content inherited from OCT-001 (six merged
+            delivery increments) with attribution preserved. Reconciliation
+            decision recorded: AHCTL-02 supersedes OCT-001.
     collaboration:
       multi_user_contribution: true
       section_level_ownership_required: true
@@ -354,6 +365,10 @@ specification:
       - { id: G-04, goal: Ingest from any source the data actually lives in,            measures: [SM-05] }
       - { id: G-05, goal: Route customer-impacting failures to an owning team,          measures: [SM-02] }
       - { id: G-06, goal: Operate the platform safely and under access control,         measures: [SM-06, SM-07, SM-09] }
+      # Added by SD-01. Governance goal: the record must be trustworthy enough
+      # to drive delivery, which means self-contained, internally consistent
+      # and mechanically enforced rather than enforced by convention.
+      - { id: G-07, goal: Keep the specification record honest and enforceable,         measures: [SM-10, SM-11, SM-12] }
     non_goals:
       - order_placement_amendment_or_cancellation
       - write_back_to_activehub_gps_licence_manager_or_any_upstream_system
@@ -376,6 +391,10 @@ specification:
       - { id: SM-07, measure: PII-in-logs incidents,                                        target: 0,                    current: no_scan_in_place }
       - { id: SM-08, measure: WCAG 2.2 AA critical or serious findings,                     target: 0,                    current: never_audited }
       - { id: SM-09, measure: Unauthenticated production access,                            target: 0,                    current: all_access_is_unauthenticated }
+      # Added by SD-01
+      - { id: SM-10, measure: Traceability references that resolve to a definition,         target: '1.0',                current: 'dangling — see BLK-18' }
+      - { id: SM-11, measure: Pull requests carrying Spec ID, ADR and Task ID,              target: '1.0',                current: not_measured_no_template }
+      - { id: SM-12, measure: Derived fields matching the lists they summarise,             target: '1.0',                current: 'blocker counts wrong — corrected in SD-01' }
     assumptions:
       - { id: A-01, assumption: Order number plus product code uniquely identifies an order line across every source. Implemented as the deduplication natural key. }
       - { id: A-02, assumption: The daily provisioning failure email is a complete snapshot; absence of a previously reported failure means it is resolved. }
@@ -447,6 +466,35 @@ specification:
       unratified_count: 11
       open_critical_count: 3   # ADR-12, ADR-13, ADR-15
       confirmed_by_omission: [ADR-14]
+      # Added by SD-01. These govern the record itself rather than the runtime.
+      new_in_ahctl_02:
+        - id: ADR-16
+          decision: >-
+            The YAML is the normative specification record. The Markdown
+            delivery pack is generated from it and is never hand-edited.
+          status: proposed_awaiting_ratification
+          rationale: >-
+            Two hand-maintained representations of one record always diverge.
+            Today the pack holds FR, ADR, TC and UX detail that the YAML does
+            not, and the YAML holds derived counts that contradict its own
+            lists. One writable artefact removes the class of defect.
+          consequences:
+            - The YAML must first be re-hydrated with the detail that currently
+              exists only in the pack, or generation would destroy it (ENG-900).
+            - Reviewers read a generated artefact; review effort moves to the YAML.
+        - id: ADR-17
+          decision: >-
+            Specification compliance is enforced mechanically in CI and in
+            branch protection, not by convention or by agent instruction.
+          status: proposed_awaiting_ratification
+          rationale: >-
+            CLAUDE.md binds Claude sessions only. It does not bind a different
+            tool, a different agent, or a human in a hurry. The reconciliation
+            commits reached main directly despite commit_directly_to_main being
+            a recorded guardrail, which is the evidence for this decision.
+          consequences:
+            - A failing spec-validation job blocks merge.
+            - Branch protection on main is a prerequisite and is an owner action.
     non_functional_requirements:
       api_p95_latency_ms: 500
       api_p95_status: not_load_tested
@@ -557,10 +605,145 @@ specification:
         - ENG-807_schedule_a_source_in_production
         - ENG-808_shared_saved_views
         - ENG-809_seed_behind_human_gated_step
+      # Added by SD-01
+      p9_spec_operations:
+        - ENG-900_rehydrate_condensed_definitions
+        - ENG-901_delivery_pack_generator
+        - ENG-902_spec_validation_ci_job
+        - ENG-903_pull_request_template
+        - ENG-904_spec_change_intake_skill
+        - ENG-905_branch_protection_on_main
+        - ENG-906_register_claude_md_retroactively
     build_invariants:
       - { id: BI-01, invariant: 'apps/api/tsconfig.build.json keeps rootDir "src" and excludes prisma' }
       - { id: BI-02, invariant: 'Dockerfile `test -f` entrypoint guards retained' }
       - { id: BI-03, invariant: 'Web Dockerfile copies and builds every workspace package imported' }
+
+    # -----------------------------------------------------------------------
+    # Added by SD-01 — how change is requested and how it lands in the record.
+    # -----------------------------------------------------------------------
+    change_intake:
+      model: two_pull_requests
+      pr_1_spec_delta:
+        contains: [new_or_changed_fr, adr_where_precedent_is_set, eng_tasks, acceptance_criteria_given_when_then, traceability_links]
+        contains_no_code: true
+        merged_when: accountable_owner_has_ratified_the_what
+      pr_2_implementation:
+        contains: [code, tests, contribution_log_entry, status_and_blocker_updates, completed_traceability_links]
+        merged_when: tests_green_and_record_updated
+      request_template:
+        - outcome — what should be true that is not true today
+        - for_whom — persona id, or a new persona
+        - why_now — the trigger; what breaks or costs if deferred
+        - done_when — how the requester would verify it themselves
+        - constraint — deadline, must-not-touch, must-reuse
+      triage:
+        - { request: new_capability,                     path: new FR plus ADR where precedent is set, spec_delta_required: true }
+        - { request: change_to_existing_behaviour,       path: amend the FR and its acceptance criteria, spec_delta_required: true }
+        - { request: defect_code_does_not_match_spec,    path: ENG task plus failing regression test,    spec_delta_required: false }
+        - { request: defect_spec_itself_was_wrong,       path: amend the FR then fix,                    spec_delta_required: true }
+        - { request: governance_decision,                path: record-only change,                       spec_delta_required: false, decided_by: accountable_owner_only }
+        - { request: touches_human_sign_off_list,        path: sign-off recorded before work starts,     spec_delta_required: true }
+      emergency_path:
+        rationale: >-
+          A process with no emergency route is abandoned at the first
+          emergency. Live production risk is fixed first and recorded after.
+        applies_to: live_production_risk_only
+        procedure:
+          - fix the risk
+          - record an exceptions_and_waivers entry naming what was skipped and why, same working day
+          - add a contribution_log entry
+        currently_applicable_to: [BLK-01]
+
+    # -----------------------------------------------------------------------
+    # SD-01 task detail. Acceptance criteria are the ratification surface:
+    # ratifying this delta ratifies these criteria, not the implementation.
+    # -----------------------------------------------------------------------
+    spec_operations:
+      goal: G-07
+      adrs: [ADR-16, ADR-17]
+      tasks:
+        - id: ENG-900
+          title: Re-hydrate the definitions condensed out of AHCTL-02
+          status: not_started
+          blocks: [ENG-901]
+          closes: [BLK-18]
+          rationale: >-
+            AHCTL-02 condensed FR, ADR, TC, UX and component detail to counts.
+            The definitions survive only in the delivery pack Markdown and in
+            git history (commit c880653). Generating the pack from the YAML
+            before restoring them would destroy the surviving copy.
+          acceptance_criteria:
+            - Given the traceability matrix references FR-01…FR-19, TC-01…TC-18, ADR-01…ADR-15, UX-J01…UX-J05 and C-01…C-08, when the record is loaded, then every referenced id resolves to a definition in the YAML.
+            - Given a reader has only the YAML, when they read it, then no section defers to the Markdown pack for detail.
+            - Given restoration is from OCT-001 content, when each definition lands, then its inherited_from attribution is preserved.
+        - id: ENG-901
+          title: Delivery pack generator
+          status: blocked_by_ENG-900
+          implements: ADR-16
+          acceptance_criteria:
+            - Given a valid spec YAML, when the generator runs, then it writes docs/sdd/control-tower-delivery-pack.md and exits 0.
+            - Given the pack is regenerated with no YAML change, when the output is compared to the committed pack, then there is no diff — generation is deterministic.
+            - Given the pack has been hand-edited, when CI runs, then the job fails and names the hand-edited file.
+            - Given the spec is not certified, when the pack is generated, then it carries the DRAFT / HUMAN REVIEW REQUIRED / NOT CERTIFIED banner per Implementation Guide section 17.
+        - id: ENG-902
+          title: Spec validation CI job
+          status: not_started
+          implements: ADR-17
+          human_sign_off_required: true
+          sign_off_reason: ci_cd_and_deployment_configuration_changes
+          closes: [BLK-17]
+          acceptance_criteria:
+            - Given the spec YAML, when the job runs, then it fails if the file does not parse or if any of the 21 schema v2.0.0 sections is absent.
+            - Given a duplicate id anywhere in the record, when the job runs, then it fails and names the duplicate.
+            - Given a traceability reference with no matching definition, when the job runs, then it fails and names the dangling reference.
+            - Given a derived count that disagrees with the list it summarises, when the job runs, then it fails and prints both numbers — this check must fail today against open_blocker_summary until SD-01 lands.
+            - Given an FR with no linked test case, when the job runs, then it reports the orphan.
+            - Given the job fails, when a merge is attempted, then the merge is blocked.
+        - id: ENG-903
+          title: Pull request template
+          status: not_started
+          implements: ADR-17
+          acceptance_criteria:
+            - Given a new pull request, when the author opens it, then the body is prefilled with Spec ID, ADR, Task ID and the required_for_ai_coding_tools checklist.
+            - Given a UI change, when the template is used, then it asks for the accessibility check explicitly.
+            - Given any change, when the template is used, then it asks whether the container images were built, because CI does not build them.
+        - id: ENG-904
+          title: /spec-change intake skill
+          status: not_started
+          rationale: >-
+            Make the compliant path the easy path. Enforcement stops the wrong
+            thing; intake tooling makes the right thing cheap.
+          acceptance_criteria:
+            - Given a request in the five-field template, when the skill runs, then it reads AHCTL-02, allocates the next free ids, and drafts the FR, acceptance criteria and ENG tasks.
+            - Given a request that collides with a guardrail, when the skill runs, then it names the guardrail and stops rather than drafting.
+            - Given a request that touches the human sign-off list, when the skill drafts, then the required sign-off is stated in the draft.
+            - Given a drafted delta, when the skill finishes, then it opens PR 1 containing no code.
+        - id: ENG-905
+          title: Branch protection on main
+          status: not_started
+          implements: ADR-17
+          owner_action_required: true
+          rationale: >-
+            commit_directly_to_main and self_approve_pull_requests are recorded
+            guardrails that nothing currently enforces. Two commits reached main
+            directly on 2026-08-12.
+          acceptance_criteria:
+            - Given branch protection is configured, when a direct push to main is attempted, then it is rejected.
+            - Given a pull request with a failing spec-validation or build check, when a merge is attempted, then it is blocked.
+            - Given a pull request with no review from someone other than its author, when a merge is attempted, then it is blocked.
+        - id: ENG-906
+          title: Register CLAUDE.md retroactively
+          status: delivered_pending_registration
+          delivered_by: PR-8
+          exception: EXC-05
+          rationale: >-
+            CLAUDE.md was authored and merged before this delta existed, to
+            bootstrap the model that this delta formalises. The record should
+            show that, not conceal it.
+          acceptance_criteria:
+            - Given the record, when CLAUDE.md is looked up, then it is registered as an engineering artefact with EXC-05 recorded against it.
+            - Given CLAUDE.md and agent_manifest.guardrails, when both are read, then they agree; any divergence is a defect in CLAUDE.md, since the YAML is normative.
 
   qa_and_verification:
     total_unit_and_component_tests_passing: 204
@@ -575,9 +758,22 @@ specification:
       target_new_code: 0.80
       enforced_in: [services/classification]
       gap_task: ENG-705
+    # Added by SD-01. Spec-operations tasks are verified by the record itself,
+    # not by application tests — the validator is its own best test case.
+    spec_operations_verification:
+      - { task: ENG-900, verified_by: 'ENG-902 dangling-reference check passes against a record it previously failed' }
+      - { task: ENG-901, verified_by: 'regenerate-and-diff produces no change; hand-edit detection fails the build' }
+      - { task: ENG-902, verified_by: 'unit tests over the validator using fixtures with a duplicate id, a dangling reference and a wrong derived count' }
+      - { task: ENG-903, verified_by: 'template renders on a new pull request' }
+      - { task: ENG-904, verified_by: 'skill run against a guardrail-colliding request stops instead of drafting' }
+      - { task: ENG-905, verified_by: 'direct push to main is rejected; unreviewed merge is blocked' }
+      - { task: ENG-906, verified_by: 'CLAUDE.md and agent_manifest.guardrails compared for agreement' }
     acceptance_recommendation:
       status: not_recommended_for_certification
-      rationale: 18 open certification blockers (16 inherited + 2 critical + 2 material added by reconciliation); BLK-01 live in production.
+      rationale: >-
+        20 open certification blockers (16 inherited, 4 added by reconciliation
+        and still open, 2 closed by reconciliation), plus BLK-17 and BLK-18
+        raised by SD-01. BLK-01 is live in production.
 
   devops_and_operations:
     service_owner: null
@@ -597,6 +793,17 @@ specification:
         - scan dependencies or secrets
         - run accessibility checks
       incidents_attributable_to_the_image_build_gap: 2
+      # Added by SD-01. Both require human sign-off before PR 2 is opened:
+      # ci_cd_and_deployment_configuration_changes is on the sign-off list.
+      planned_additions:
+        - { task: ENG-902, addition: spec_validation_job,     human_sign_off_required: true }
+        - { task: ENG-704, addition: container_image_build,   human_sign_off_required: true, closes: BLK-05 }
+      branch_protection:
+        status: not_configured
+        task: ENG-905
+        note: >-
+          Until configured, commit_directly_to_main and self_approve_pull_requests
+          are unenforced. Two commits reached main directly on 2026-08-12.
     rollback_plan:
       mechanism: redeploy the previous Railway deployment
       limitation: no down migrations exist; unsafe across schema changes
@@ -650,10 +857,23 @@ specification:
       - { id: BLK-A2-04, description: 'Net-new declaration falsified by OCT-001 material',                                    severity: critical, status: closed_by_reconciliation }
       - { id: BLK-A2-05, description: 'Unilateral supersession of OCT-001 without countersignature',                          severity: material, status: open }
       - { id: BLK-A2-06, description: 'Ongoing synchronisation obligation with delivered state',                              severity: material, status: open }
+      # Raised by SD-01
+      - { id: BLK-17, description: 'Spec compliance is convention, not control — no validator, no PR template, no branch protection', severity: material, status: open, raised_by: SD-01, closed_by_tasks: [ENG-902, ENG-903, ENG-905] }
+      - { id: BLK-18, description: 'Record is not self-contained — traceability references FR/TC/ADR/UX/C ids whose definitions were condensed out', severity: critical, status: open, raised_by: SD-01, closed_by_tasks: [ENG-900] }
     open_blocker_summary:
-      total_open: 18
-      critical_open: 15
-      material_open: 3
+      # Corrected by SD-01. Recomputed from the blockers list above rather than
+      # carried forward. Previously recorded as 18 / 15 / 3, which matched
+      # neither the entry count nor the severity split.
+      total_entries: 24
+      closed: 2                 # BLK-A2-01, BLK-A2-04 — closed_by_reconciliation
+      total_open: 22
+      critical_open: 16
+      material_open: 6
+      derivation: >-
+        24 entries; 2 closed by reconciliation; 22 open, of which 16 critical
+        and 6 material. BLK-03 is counted open: its gate is reconciled pending
+        endorsement, which is not complete. ENG-902 recomputes these counts and
+        fails the build when they drift again.
       live_production_risk: [BLK-01]
     waivers: []
     decisions:
@@ -681,10 +901,15 @@ specification:
       - { goal: G-04, requirements: [FR-08, FR-09, FR-19], ux: [UX-J03, UX-J05], architecture: [ADR-03], engineering: [PR2], tests: [TC-01, TC-02, TC-03, TC-16], release_control: admin_role_not_enforced_while_blk_01 }
       - { goal: G-05, requirements: [FR-11, FR-12, FR-13], ux: [UX-J03],         architecture: [ADR-06, ADR-07, ADR-08], engineering: [PR5], tests: [TC-08, TC-09, TC-10, TC-11, TC-12, TC-13], release_control: sm_02_not_instrumented }
       - { goal: G-06, requirements: [FR-17, FR-18],        ux: [],               architecture: [ADR-10], engineering: [ENG-701, ENG-704], tests: [TC-17], release_control: '🔴 NOT ENFORCED IN PRODUCTION' }
+      # Added by SD-01. Verification is the validator and the generator rather
+      # than application test cases; see qa_and_verification.spec_operations_verification.
+      - { goal: G-07, requirements: [], ux: [], architecture: [ADR-16, ADR-17], engineering: [ENG-900, ENG-901, ENG-902, ENG-903, ENG-904, ENG-905, ENG-906], tests: [spec_operations_verification], release_control: spec_validation_job_blocks_merge }
     orphans:
       - { item: FR-19,       reason: 'code and tests exist but no enabled source carries a schedule in production', task: ENG-807 }
       - { item: SFTP/SHAREPOINT/TABLEAU connectors, reason: registered source types with no implementation, task: ENG-803/804/805 }
       - { item: success_measures, reason: 'no instrumentation', task: ENG-715 }
+      # Added by SD-01
+      - { item: 'FR-01…FR-19, TC-01…TC-18, ADR-01…ADR-15, UX-J01…UX-J05, C-01…C-08', reason: 'referenced by this matrix but defined nowhere in the YAML; survive in the delivery pack and in commit c880653', task: ENG-900, blocker: BLK-18 }
 
   contribution_log:
     - timestamp: '2026-08-12T10:15:00Z'
@@ -723,6 +948,25 @@ specification:
         is unilateral and awaits countersignature from mysites@cluepony.com
         and endorsement from Architecture Chair.
       human_review_required: true
+    - timestamp: '2026-08-12'
+      contributor: claude-agent
+      role: ai_agent
+      action: spec_delta_prepared
+      delta_id: SD-01
+      sections: [metadata, persistence, product_intent, architecture, engineering, qa_and_verification, devops_and_operations, certification, traceability, exceptions_and_waivers]
+      summary: >-
+        Spec-operations delta. Adds G-07 with SM-10…SM-12; ADR-16 (YAML
+        normative, pack generated) and ADR-17 (compliance enforced in CI, not
+        by convention); tasks ENG-900…ENG-906; the change_intake model
+        (two-PR, request template, triage, emergency path); raises BLK-17 and
+        BLK-18; registers CLAUDE.md retroactively under EXC-05; and corrects
+        open_blocker_summary, which disagreed with the list it summarises.
+      prepared_not_approved: true
+      human_review_required: true
+      ratification_required_from: accountable_owner
+      note: >-
+        Prepared by an AI agent under ai_may_prepare. No review gate has been
+        marked passed, no blocker closed and no ADR ratified by this entry.
 
   open_questions:
     - { id: OQ-01,    question: 'Who is accountable for this platform in production?',                                              blocks: [BLK-07] }
@@ -744,6 +988,20 @@ specification:
     - { id: EXC-02, exception: 'No staging environment',                                       guardrail: environment_progression,                     status: candidate_not_approved, inherited_from: OCT-001 }
     - { id: EXC-03, exception: 'Software delivered ahead of specification certification',      guardrail: no_production_code_before_certification,     status: candidate_not_approved, inherited_from: OCT-001 }
     - { id: EXC-04, exception: 'No idempotency keys on state-changing POSTs',                  guardrail: use_idempotency_keys_for_state_changing_posts, status: candidate_not_approved, inherited_from: OCT-001 }
+    # Added by SD-01
+    - id: EXC-05
+      exception: >-
+        CLAUDE.md was authored and merged (PR #8) before the spec delta that
+        registers it, bypassing the two-PR model it establishes.
+      guardrail: spec_delta_before_implementation
+      rationale: >-
+        Bootstrap. CLAUDE.md is the mechanism that binds sessions to the
+        record; without it the two-PR model had nothing enforcing it. The
+        exception is recorded rather than concealed.
+      scope: single_occurrence_not_a_precedent
+      status: candidate_not_approved
+      raised_by: SD-01
+      task: ENG-906
 
 review_gate_defaults:
   portfolio_reuse_review:      { required: true, required_before: candidate,     blocks_if_incomplete: true }
@@ -849,14 +1107,16 @@ agent_manifest:
     security_baseline: OWASP_ASVS_L2
     unauthenticated_production_access_tolerance: 0
 
+  # DERIVED — recomputed from the lists, never hand-maintained. ENG-902 makes
+  # this mechanical and fails the build on drift. Corrected by SD-01.
   review_and_warnings_summary:
-    certification_blockers_open: 18
-    critical_blockers_open: 15
-    material_blockers_open: 3
+    certification_blockers_open: 22   # 24 entries, 2 closed by reconciliation
+    critical_blockers_open: 16
+    material_blockers_open: 6
     live_production_risks: [BLK-01]
     warnings: 8
     open_questions: 11   # 13 raised, 2 closed by reconciliation
-    exception_candidates: 4
+    exception_candidates: 5
     unresolved_conflicts: 2
     readiness_for_certification: NOT_READY
     readiness_for_continued_internal_use: CONDITIONAL_ON_BLK_01
