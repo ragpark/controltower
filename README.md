@@ -15,6 +15,8 @@ built as a modern SaaS-style web application.
 
 📐 [Architecture diagram](docs/architecture.md) · 🗄️ [Database ERD](docs/erd.md) · 🔌 [API contracts](docs/api-contracts.md) · 🚀 [Deployment](infrastructure/deployment/README.md)
 
+📋 **Specification record (Pearson SDD):** [delivery pack](docs/sdd/control-tower-delivery-pack.md) · [machine-readable spec](docs/sdd/control-tower-spec.yaml) — 🔴 DRAFT, not certified. The YAML is authoritative for AI coding tool guardrails; read it before making changes.
+
 ## Repository layout
 
 ```
