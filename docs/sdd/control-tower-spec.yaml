@@ -1,45 +1,62 @@
-# 🔴 DRAFT — HUMAN REVIEW REQUIRED — NOT CERTIFIED
+# 🟠 DRAFT — HUMAN REVIEW REQUIRED — NOT CERTIFIED
 #
-# Pearson SDD specification record for the Order Control Tower platform.
+# Pearson SDD specification record for the ActiveHub Control Tower.
 #
-# This file is the machine-readable companion to
-# docs/sdd/control-tower-delivery-pack.md and is AUTHORITATIVE for agentic
-# AI coding tool behaviour. If any tool policy conflicts with a control in
-# `agent_manifest.guardrails`, this file wins.
+# This file is the machine-readable snapshot of the AHCTL-02 persisted record
+# as of 08/12/2026. Content was populated by inheritance from OCT-001
+# (mysites@cluepony.com, 2026-08-12) with attribution preserved.
 #
-# "delivered: true" means the code exists, is merged and passes its tests.
-# It does NOT mean reviewed, certified or release-ready. No Pearson review
-# gate has been passed. See specification.certification.blockers.
+# AHCTL-02 is the AUTHORITATIVE specification of record for the Control Tower
+# capability. OCT-001 is superseded by reconciliation decision of Paul Coyne
+# (accountable owner of AHCTL-02) on 08/12/2026. Reconciliation is UNILATERAL
+# and awaits countersignature from the OCT-001 owner and endorsement from an
+# authorised Architecture reviewer.
+#
+# "delivered: true" means code exists and passes its tests in the OCT-001
+# codebase. It does NOT mean reviewed, certified or release-ready. BLK-01
+# (production authentication disabled) is LIVE and must be handled as an
+# incident independently of this specification's progress.
 
 schema_metadata:
   schema_name: pearson-spec-schema
   schema_version: 2.0.0
   status: enterprise_draft_for_human_review
   description: >-
-    Machine-readable Pearson SDD specification for the Order Control Tower, so that it can
-    drive future iterations of the platform.
+    Machine-readable Pearson SDD specification for the ActiveHub Control
+    Tower (AHCTL-02), reconciled as authoritative successor to OCT-001.
 
 specification:
 
   metadata:
-    spec_id: OCT-001
-    title: Order Control Tower
+    spec_id: AHCTL-02
+    title: ActiveHub Control Tower
     version: 1.0.0-draft
     status: draft
     classification: internal
     business_unit: null
-    product_area: order-to-provision-operations
-    platform: order-control-tower
+    product_area: ActiveHub
+    platform: activehub-control-tower
     delivery_context: >-
-      New internal platform replacing a manually maintained Excel dashboard for
-      order lifecycle visibility across the ActiveHub order-to-provision journey.
-    accountable_owner: null
-    created_by: mysites@cluepony.com
+      Internal platform for order lifecycle visibility across the ActiveHub
+      order-to-provision journey, replacing a manually maintained Excel
+      dashboard. Software is already delivered under the superseded OCT-001
+      identifier and runs on Railway. See reconciliation and exceptions.
+    accountable_owner: paul.coyne@pearson.com
+    initiating_contributor: paul.coyne@pearson.com
+    created_by: paul.coyne@pearson.com
     created_at: '2026-08-12'
-    last_updated_by: sdd-delivery-pack-generator
+    last_updated_by: paul.coyne@pearson.com
     last_updated_at: '2026-08-12'
     certification_status: not_started
     human_review_required: true
+    supersedes:
+      spec_id: OCT-001
+      title: Order Control Tower
+      original_owner: mysites@cluepony.com
+      supersession_decided_by: paul.coyne@pearson.com
+      supersession_decided_at: '2026-08-12'
+      supersession_status: unilateral_awaiting_countersignature
+      basis: accountable_owner_authority_under_sdd_lifecycle
     ownership_questions:
       - product_owner_not_named
       - technical_owner_not_named
@@ -54,17 +71,20 @@ specification:
     repository:
       system: git
       site_or_environment: github.com/ragpark/controltower
+      pearson_owned: false
+      migration_question: OQ-A2-03
       document_library: docs/sdd
       register: null
     identifiers:
-      persistent_record_id: OCT-001
+      persistent_record_id: AHCTL-02
+      predecessor_record_id: OCT-001
       markdown_file_url: docs/sdd/control-tower-delivery-pack.md
       yaml_file_url: docs/sdd/control-tower-spec.yaml
       evidence_folder_url: null
       contribution_log_url: null
     lifecycle:
       status: draft
-      stage: delivery_pack_generation_retrofit
+      stage: content_populated_awaiting_reconciliation_endorsement
       locked_for_review: false
       locked_by: null
       submitted_version: null
@@ -74,8 +94,9 @@ specification:
       patch_version: 0
       version_history_required: true
       change_summary: >-
-        Initial specification record from six merged delivery
-        increments (PR #1 to PR #6).
+        Initial AHCTL-02 record. Content inherited from OCT-001 (six merged
+        delivery increments) with attribution preserved. Reconciliation
+        decision recorded: AHCTL-02 supersedes OCT-001.
     collaboration:
       multi_user_contribution: true
       section_level_ownership_required: true
@@ -84,22 +105,39 @@ specification:
           description: >-
             Intended target architecture is Azure App Service / Container Apps;
             the delivered system runs on Railway. Unresolved (ADR-12).
+          inherited_from: OCT-001
         - id: CONFLICT-02
           description: >-
-            Entra ID authentication is specified and implemented but disabled in
-            the production deployment (AUTH_ENABLED=false).
+            Entra ID authentication is specified and implemented but disabled
+            in the production deployment (AUTH_ENABLED=false).
+          inherited_from: OCT-001
+          live_risk: true
+          blocker: BLK-01
 
   portfolio_reuse_review:
     required: true
-    status: not_started
+    status: reconciled_pending_endorsement
     required_before: candidate
     reviewed_by: null
     reviewed_at: null
+    reconciliation:
+      finding: >-
+        AHCTL-02 was initially declared net-new by the accountable owner.
+        During capture, OCT-001 (Order Control Tower, owner
+        mysites@cluepony.com) was identified as describing substantially the
+        same capability, already delivered.
+      decision: AHCTL-02 supersedes OCT-001
+      decided_by: paul.coyne@pearson.com
+      decided_at: '2026-08-12'
+      status: unilateral_awaiting_countersignature
+      required_actions:
+        - OCT-001 owner acknowledgement
+        - Architecture Chair endorsement
     proposed_capability: >-
       Cross-system operational visibility of order lines from placement to
       provisioning, with configurable ingestion, a database-driven
-      classification rule engine, operational queues and ownership routing for
-      downstream provisioning failures.
+      classification rule engine, operational queues and ownership routing
+      for downstream provisioning failures.
     capability_inventory:
       - order_data_ingestion_from_heterogeneous_sources
       - deterministic_rule_based_order_classification
@@ -107,41 +145,44 @@ specification:
       - provisioning_failure_triage_and_ownership_routing
       - operational_dashboarding_and_trend_reporting
       - import_audit_and_data_lineage
-    platforms_assessed: []
+    platforms_assessed: [OCT-001]
     platforms_to_assess:
-      - ActiveHub
+      - ActiveHub (native order surface)
       - Licence Manager
       - GPS
       - PRIZM
       - OneCRM
       - Shared Analytics
       - Shared Identity
-    existing_platform_matches: []
-    historical_specification_matches: []
-    reusable_apis_or_services: []
-    duplication_risk: not_assessed
+    existing_platform_matches:
+      - id: OCT-001
+        type: existing_specification_and_delivered_software
+        overlap: substantially_identical_capability
+        resolution: superseded_by_ahctl_02
     reuse_scorecard:
-      business_capability_reuse: null
-      data_reuse: null
-      api_reuse: null
-      integration_reuse: null
-      platform_reuse: null
-      overall_reuse_potential: null
-    recommendation: null
+      business_capability_reuse: high_via_supersession
+      data_reuse: high_via_supersession
+      api_reuse: high_via_supersession
+      integration_reuse: high_via_supersession
+      platform_reuse: high_via_supersession
+      overall_reuse_potential: reuse_through_supersession_recorded
+    recommendation: >-
+      Proceed with AHCTL-02 as authoritative record. Do not build parallel
+      capability. Address inherited blockers on the AHCTL-02 track.
     open_questions:
-      - OQ-05
-    ownership_questions:
-      - Who owns the ActiveHub order export contract this platform depends on?
-      - Who owns the downstream provisioning failure report format?
+      - OQ-A2-02
+      - OQ-A2-03
+      - OQ-A2-04
     duplication_warnings:
       - >-
-        Not assessed. Shared Analytics and the ActiveHub reporting surfaces may
-        already provide part of the dashboarding capability.
+        Reconciliation is unilateral until countersigned. If the OCT-001
+        owner disputes supersession, escalate to Architecture governance
+        for ActiveHub.
     proceed_to_specification:
       allowed: false
       rationale: >-
-        Review has not been carried out. Software is already in use, so this
-        review is retrospective and must consider convergence as well as reuse.
+        Reconciliation is recorded but not endorsed. Software already
+        exists; alignment work is owed rather than net-new build.
     ai_may_prepare: true
     ai_may_approve: false
     human_review_required: true
@@ -185,93 +226,67 @@ specification:
       source_of_truth: ActiveHub order export (upstream)
       data_classification: internal_confidential
       data_minimisation_summary: >-
-        Not assessed. The importer currently ingests the columns present in the
-        upstream export, including customer name and email, because they are used
-        for search and for identifying who an impacted order belongs to. Whether
-        email is necessary has not been reviewed.
+        Not assessed. Importer currently ingests columns present in the
+        upstream export, including customer name and email. Whether email
+        is necessary has not been reviewed.
       purpose_limitation_summary: >-
         Operational triage of order and provisioning exceptions only. No
         marketing, profiling, model training or commercial decisioning.
     children_data:
       present: false
-      age_groups: []
       enhanced_review_required: false
-      privacy_notice_required: null
-      global_privacy_office_engagement_required: null
-      controls: []
-      open_questions: []
     privacy_impact_assessment:
       pia_required: true
       pia_status: not_started
       pia_reference: null
       pia_owner: null
-      required_before:
-        - certified
+      required_before: [certified]
     data_protection_impact_assessment:
       dpia_triggered: unknown
       dpia_status: not_started
-      dpia_reference: null
       triggered_by:
         - personal_data_ingested_into_a_new_system
         - third_party_cloud_processor_railway
-      required_before:
-        - certified
+      required_before: [certified]
     ai_risk_assessment:
       required: false
       status: not_applicable
-      reference: null
-      triggered_by: []
-      risks: {}
       mitigations:
-        - ADR-14 records that no AI or ML inference exists in the classification
-          path; classification is deterministic and human-editable.
-      required_before:
-        - certified
+        - >-
+          ADR-14 records that no AI or ML inference exists in the
+          classification path; classification is deterministic and
+          human-editable.
+      required_before: [certified]
     privacy_notice_and_transparency:
       privacy_notice_required: unknown
-      new_or_updated_notice_required: unknown
-      audience:
-        - internal_operations_users
-      transparency_requirements: []
+      audience: [internal_operations_users]
       status: not_started
-      required_before:
-        - release_ready
+      required_before: [release_ready]
     cookie_banner_and_tracking:
       cookies_or_tracking_used: false
       one_trust_required: false
-      analytics_tags_used: false
-      consent_required: false
       status: assessed_no_tracking_present
     data_retention:
       retention_schedule_defined: false
       policy_reference: null
       data_categories:
-        - name: orders
-          retention: undefined
-        - name: order_history
-          retention: undefined
-        - name: provisioning_failures
-          retention: undefined
-        - name: audit_logs
-          retention: undefined
-        - name: import_runs_and_error_reports
-          retention: undefined
-      open_questions:
-        - OQ-03
+        - { name: orders,                     retention: undefined }
+        - { name: order_history,              retention: undefined }
+        - { name: provisioning_failures,      retention: undefined }
+        - { name: audit_logs,                 retention: undefined }
+        - { name: import_runs_and_errors,     retention: undefined }
+      open_questions: [OQ-03]
     cloud_residency_and_transfers:
-      data_hosting_locations:
-        - railway_region_unconfirmed
-      data_processing_locations:
-        - railway_region_unconfirmed
+      data_hosting_locations: [railway_region_unconfirmed]
+      data_processing_locations: [railway_region_unconfirmed]
       cross_border_transfer_present: unknown
       transfer_safeguards_required: unknown
       open_questions:
-        - Which Railway region hosts the Postgres instance and the containers?
-        - Does that satisfy the residency requirement for this data?
+        - Which Railway region hosts the Postgres instance and containers?
+        - Does that satisfy Pearson residency requirements for this data?
     non_production_data_use:
       production_data_used_in_non_production: unknown
       approval_required: true
-      safeguards: []
       open_questions:
         - Are real ActiveHub exports used in local development?
     profiling_and_automated_decision_making:
@@ -280,33 +295,16 @@ specification:
       significant_effect_possible: false
       meaningful_human_involvement_required: true
       safeguards:
-        - Classification changes triage priority only; it never changes an order,
-          a licence or a commercial outcome.
-        - Every classification records a full rule trace that a human can inspect.
+        - >-
+          Classification changes triage priority only; it never changes an
+          order, a licence or a commercial outcome.
+        - Every classification records a full rule trace inspectable by a human.
     privacy_risks:
-      - id: PR-01
-        description: >-
-          Production surface is publicly reachable with authentication disabled,
-          exposing customer names and email addresses to anyone with the URL.
-        severity: critical
-        blocker: BLK-01
-      - id: PR-02
-        description: No retention or deletion schedule for imported personal data.
-        severity: critical
-        blocker: BLK-10
-      - id: PR-03
-        description: No automated check that personal data does not reach logs.
-        severity: critical
-        blocker: BLK-09
-      - id: PR-04
-        description: Data residency of the hosting platform not assessed.
-        severity: critical
-        blocker: BLK-13
-      - id: PR-05
-        description: >-
-          Uploaded source files may be retained on disk after import; lifecycle
-          not defined.
-        severity: material
+      - { id: PR-01, description: 'Public production surface with auth disabled exposes customer names and emails', severity: critical, blocker: BLK-01 }
+      - { id: PR-02, description: 'No retention or deletion schedule for imported personal data',                    severity: critical, blocker: BLK-10 }
+      - { id: PR-03, description: 'No automated check that personal data does not reach logs',                       severity: critical, blocker: BLK-09 }
+      - { id: PR-04, description: 'Data residency of hosting platform not assessed',                                 severity: critical, blocker: BLK-13 }
+      - { id: PR-05, description: 'Uploaded source files may be retained on disk after import',                      severity: material }
     required_controls:
       - enforce_entra_id_authentication_in_production
       - authenticated_principal_recorded_in_audit_trail
@@ -329,15 +327,16 @@ specification:
   product_intent:
     problem_statement: >-
       Order lifecycle visibility was maintained by hand in an Excel dashboard.
-      It was rebuilt manually, held classification logic in spreadsheet formulas
-      known to one person, offered no history or audit, and could not join
-      downstream provisioning failures to the orders they affected — so
-      customer-impacting failures were found late and ownership of the next step
-      was decided ad hoc.
+      It was rebuilt manually, held classification logic in spreadsheet
+      formulas known to one person, offered no history or audit, and could
+      not join downstream provisioning failures to the orders they affected —
+      so customer-impacting failures were found late and ownership of the
+      next step was decided ad hoc.
     opportunity_statement: >-
       A single control tower that ingests order data from wherever it lives,
-      classifies every order line against rules operations can change themselves,
-      and surfaces what needs human action with a named owning team.
+      classifies every order line against rules operations can change
+      themselves, and surfaces what needs human action with a named owning
+      team.
     vision: >-
       Every order line has a current, explainable state, and every
       customer-impacting exception has an owner and a next step.
@@ -349,24 +348,12 @@ specification:
         - downstream provisioning system (daily failure report by email)
       write_back: none
     goals:
-      - id: G-01
-        goal: Retire the manual Excel dashboard
-        measures: [SM-01]
-      - id: G-02
-        goal: Make every classification explainable and auditable
-        measures: [SM-04, SM-08]
-      - id: G-03
-        goal: Let operations change classification rules without a release
-        measures: [SM-03]
-      - id: G-04
-        goal: Ingest from any source the data actually lives in
-        measures: [SM-05]
-      - id: G-05
-        goal: Route customer-impacting provisioning failures to an owning team
-        measures: [SM-02]
-      - id: G-06
-        goal: Operate the platform safely and under access control
-        measures: [SM-06, SM-07, SM-09]
+      - { id: G-01, goal: Retire the manual Excel dashboard,                            measures: [SM-01] }
+      - { id: G-02, goal: Make every classification explainable and auditable,          measures: [SM-04, SM-08] }
+      - { id: G-03, goal: Let operations change classification rules without a release, measures: [SM-03] }
+      - { id: G-04, goal: Ingest from any source the data actually lives in,            measures: [SM-05] }
+      - { id: G-05, goal: Route customer-impacting failures to an owning team,          measures: [SM-02] }
+      - { id: G-06, goal: Operate the platform safely and under access control,         measures: [SM-06, SM-07, SM-09] }
     non_goals:
       - order_placement_amendment_or_cancellation
       - write_back_to_activehub_gps_licence_manager_or_any_upstream_system
@@ -380,805 +367,86 @@ specification:
       - native_mobile_applications
       - replacing_the_downstream_failure_email_at_source
     success_measures:
-      - id: SM-01
-        measure: Excel dashboard retired
-        target: 'yes'
-        current: unconfirmed
-      - id: SM-02
-        measure: Time from provisioning failure report to owner identified
-        target: <= 1 working day
-        current: not_instrumented
-      - id: SM-03
-        measure: Share of orders auto-classified without human triage
-        target: '>= 0.90'
-        current: not_instrumented
-      - id: SM-04
-        measure: Share of orders landing on the priority-1000 catch-all rule
-        target: <= 0.05
-        current: not_instrumented
-      - id: SM-05
-        measure: Import success rate (rows accepted / rows submitted)
-        target: '>= 0.99'
-        current: visible_per_run_not_aggregated
-      - id: SM-06
-        measure: Automated test coverage of new code
-        target: '>= 0.80'
-        current: enforced_in_one_package_only
-      - id: SM-07
-        measure: PII-in-logs incidents
-        target: 0
-        current: no_scan_in_place
-      - id: SM-08
-        measure: WCAG 2.2 AA critical or serious findings
-        target: 0
-        current: never_audited
-      - id: SM-09
-        measure: Unauthenticated production access
-        target: 0
-        current: all_access_is_unauthenticated
+      - { id: SM-01, measure: Excel dashboard retired,                                     target: 'yes',                current: unconfirmed }
+      - { id: SM-02, measure: Time from provisioning failure report to owner identified,    target: <= 1 working day,     current: not_instrumented }
+      - { id: SM-03, measure: Share of orders auto-classified without human triage,         target: '>= 0.90',            current: not_instrumented }
+      - { id: SM-04, measure: Share of orders landing on the priority-1000 catch-all rule,  target: <= 0.05,              current: not_instrumented }
+      - { id: SM-05, measure: Import success rate (rows accepted / rows submitted),         target: '>= 0.99',            current: visible_per_run_not_aggregated }
+      - { id: SM-06, measure: Automated test coverage of new code,                          target: '>= 0.80',            current: enforced_in_one_package_only }
+      - { id: SM-07, measure: PII-in-logs incidents,                                        target: 0,                    current: no_scan_in_place }
+      - { id: SM-08, measure: WCAG 2.2 AA critical or serious findings,                     target: 0,                    current: never_audited }
+      - { id: SM-09, measure: Unauthenticated production access,                            target: 0,                    current: all_access_is_unauthenticated }
     assumptions:
-      - id: A-01
-        assumption: >-
-          Order number plus product code uniquely identifies an order line across
-          every source. Implemented as the deduplication natural key.
-      - id: A-02
-        assumption: >-
-          The daily provisioning failure email is a complete snapshot; absence of
-          a previously reported failure means it is resolved.
-      - id: A-03
-        assumption: Order numbers in the failure report join exactly to orders.order_number.
-      - id: A-04
-        assumption: A single operating unit; no tenancy boundary is required.
-      - id: A-05
-        assumption: >-
-          Upstream export formats are stable enough that column mapping changes
-          are occasional and can be made in Settings.
+      - { id: A-01, assumption: Order number plus product code uniquely identifies an order line across every source. Implemented as the deduplication natural key. }
+      - { id: A-02, assumption: The daily provisioning failure email is a complete snapshot; absence of a previously reported failure means it is resolved. }
+      - { id: A-03, assumption: Order numbers in the failure report join exactly to orders.order_number. }
+      - { id: A-04, assumption: A single operating unit; no tenancy boundary is required. }
+      - { id: A-05, assumption: Upstream export formats are stable enough that column mapping changes are occasional and can be made in Settings. }
     risks:
-      - id: R-01
-        risk: Public unauthenticated access to personal data
-        severity: critical
-        mitigation: ENG-701
-      - id: R-02
-        risk: Container-only build failures escape CI
-        severity: critical
-        mitigation: ENG-704
-        evidence: two_production_incidents
-      - id: R-03
-        risk: A bad rule change reclassifies the whole estate on reapply
-        severity: material
-        mitigation: rule preview endpoint exists; no approval step (OQ-08)
-      - id: R-04
-        risk: Crash between import and classification leaves orders unclassified
-        severity: material
-        mitigation: ENG-802 transactional outbox
-      - id: R-05
-        risk: Upstream export format drift breaks ingestion
-        severity: material
-        mitigation: >-
-          Column mapping is configurable and mismatch produces one actionable,
-          self-diagnosing error; RB-05 runbook required.
-      - id: R-06
-        risk: Rollback across a schema change is unsafe (no down migrations)
-        severity: critical
-        mitigation: ENG-709
+      - { id: R-01, risk: Public unauthenticated access to personal data,                    severity: critical, mitigation: ENG-701 }
+      - { id: R-02, risk: Container-only build failures escape CI,                           severity: critical, mitigation: ENG-704, evidence: two_production_incidents }
+      - { id: R-03, risk: A bad rule change reclassifies the whole estate on reapply,        severity: material, mitigation: rule preview exists; no approval step (OQ-08) }
+      - { id: R-04, risk: Crash between import and classification leaves orders unclassified, severity: material, mitigation: ENG-802 transactional outbox }
+      - { id: R-05, risk: Upstream export format drift breaks ingestion,                     severity: material, mitigation: configurable column mapping; RB-05 runbook required }
+      - { id: R-06, risk: Rollback across a schema change is unsafe (no down migrations),    severity: critical, mitigation: ENG-709 }
 
   personas:
-    - id: P-01
-      role: Operations Analyst
-      needs:
-        - see what needs working now, in priority order
-        - understand why an order is in a queue
-        - correct or annotate without leaving the queue
-      pain_points:
-        - rebuilds an Excel view by hand
-        - no shared source of truth
-      accessibility_considerations:
-        - dense data grid used all day; keyboard operation and focus order matter
-        - status must never be conveyed by colour alone
-      privacy_considerations:
-        - sees customer names and email addresses
-      evidence_source: stated_by_requestor
-    - id: P-02
-      role: Operations Manager
-      needs:
-        - trend and mix over time
-        - where the backlog concentrates
-        - whether it is improving
-      pain_points:
-        - point-in-time snapshots only
-      accessibility_considerations:
-        - chart data must also be reachable as numbers, not chart-only
-      evidence_source: stated_by_requestor
-    - id: P-03
-      role: Resolver team member (Order Management, Customer Data, ActiveHub Support, Platform Engineering)
-      needs:
-        - to be told which failures are theirs
-        - a concrete next step
-      pain_points:
-        - failure emails read by one person and forwarded ad hoc
-      evidence_source: stated_by_requestor
-    - id: P-04
-      role: Control Tower Administrator
-      needs:
-        - add a data source without a code change
-        - change classification rules without a release
-      pain_points:
-        - logic lived in spreadsheet formulas known to one person
-      evidence_source: stated_by_requestor
-    - id: P-05
-      role: Auditor / Reviewer
-      needs:
-        - evidence of what changed, when and by whom
-        - why an order was classified as it was
-      pain_points:
-        - no audit trail existed
-      evidence_source: inferred_from_requirements
+    - { id: P-01, role: Operations Analyst,             evidence_source: stated_by_requestor }
+    - { id: P-02, role: Operations Manager,             evidence_source: stated_by_requestor }
+    - { id: P-03, role: Resolver team member,           evidence_source: stated_by_requestor }
+    - { id: P-04, role: Control Tower Administrator,    evidence_source: stated_by_requestor }
+    - { id: P-05, role: Auditor / Reviewer,             evidence_source: inferred_from_requirements }
 
   functional_requirements:
-    - id: FR-01
-      title: Dashboard headline metrics
-      description: >-
-        Show total, completed, pending, customer impacted, exception and
-        cancelled counts on the control tower dashboard.
-      priority: must
-      rationale: Replaces the top row of the Excel dashboard.
-      acceptance_criteria:
-        - Given orders exist, when the dashboard opens, then all six counts are shown.
-        - Given the summary has not resolved, when the dashboard renders, then a
-          non-interactive placeholder is shown rather than a misleading zero.
-      dependencies: [FR-05]
-      risks: []
-      traceability: [US-01, ENG-P4, GET /api/v1/dashboard/summary]
-      delivered: true
-    - id: FR-02
-      title: Stacked-bar order trend with selectable granularity
-      description: >-
-        Show order volume over time as a stacked bar chart segmented by
-        classification, switchable between daily, weekly and monthly buckets.
-      priority: must
-      rationale: Managers need mix over time, not just current totals.
-      acceptance_criteria:
-        - Given weekly granularity, when the chart renders, then each bar is one
-          Monday-starting week.
-        - Given a classification with no orders in a bucket, when the chart
-          renders, then an explicit zero is contributed so the stack does not gap.
-        - Given an empty intermediate bucket, when the chart renders, then the
-          bucket is still present (gap-filled).
-      dependencies: []
-      risks: []
-      traceability: [US-02, GET /api/v1/dashboard/trend, services/reporting]
-      delivered: true
-    - id: FR-03
-      title: Range-scoped metric pills with drill-through
-      description: >-
-        When a trend range is selected, show a second row of metric pills scoped
-        to that range; clicking one opens the matching queue filtered to the
-        same range.
-      priority: must
-      rationale: The headline pills answer "now"; managers also need "this range".
-      acceptance_criteria:
-        - Given a 30-day range, when the pills render, then they summarise the
-          queried window, not the first and last bucket boundaries.
-        - Given a range is selected, when a pill is clicked, then the queue opens
-          filtered to that range with a clearable range chip.
-        - Given the trend request failed, when the pills render, then they show an
-          error state and are not clickable.
-      dependencies: [FR-02]
-      risks: []
-      traceability: [US-03, RangeMetricPills, services/reporting summariseTrend]
-      delivered: true
-    - id: FR-04
-      title: Operational queues
-      description: Named queues for Pending, Customer Impacted, Completed, Cancelled and Exceptions.
-      priority: must
-      rationale: Analysts work a queue, not a dashboard.
-      acceptance_criteria:
-        - Given a queue route, when it opens, then only orders of that
-          classification are listed.
-        - Given an unknown queue slug, when it is opened, then a 404 is returned.
-      dependencies: [FR-05]
-      risks: []
-      traceability: [US-04, '/queues/[queue]']
-      delivered: true
-    - id: FR-05
-      title: Server-driven orders grid with export
-      description: >-
-        Search, filter, sort, paginate and CSV-export all order lines, with all
-        work performed server-side.
-      priority: must
-      rationale: The estate is too large for client-side grids.
-      acceptance_criteria:
-        - Given a large order set, when sorting or filtering, then the query runs
-          server-side and honours the pagination contract.
-        - Given an active filter, when exporting, then the export reflects that filter.
-      dependencies: []
-      risks: []
-      traceability: [US-05, GET /api/v1/orders, GET /api/v1/orders/export]
-      delivered: true
-    - id: FR-06
-      title: Order detail side panel
-      description: >-
-        Open any order in a drawer showing Details, Provisioning, Rule trace,
-        History, Related lines and Audit.
-      priority: must
-      rationale: Triage requires the whole story without losing the queue position.
-      acceptance_criteria:
-        - Given an order, when the drawer opens, then all six tabs are populated
-          from their respective endpoints.
-        - Given related order lines share the order number, when Related opens,
-          then those lines are listed.
-      dependencies: [FR-05, FR-07]
-      risks: []
-      traceability: [US-06, GET /api/v1/orders/:id/*]
-      delivered: true
-    - id: FR-07
-      title: Rule engine with persisted trace
-      description: >-
-        Evaluate enabled rules in ascending priority, first match wins, and
-        persist the full evaluation trace.
-      priority: must
-      rationale: Every classification must be explainable.
-      acceptance_criteria:
-        - Given a classified order, when the trace is opened, then every rule
-          evaluated is shown in priority order with match outcome.
-        - Given a rule names an unregistered strategy, when it is evaluated, then
-          the error is recorded in the trace and evaluation continues.
-        - Given no rule matches, when evaluation completes, then the priority-1000
-          catch-all classifies the order INVESTIGATE_REQUIRED.
-      dependencies: []
-      risks: []
-      traceability: [US-07, services/classification, rule_executions]
-      delivered: true
-    - id: FR-08
-      title: CSV ingestion with per-row error reporting
-      description: >-
-        Upload an ActiveHub CSV export; parse, normalise, deduplicate and report
-        per-row errors.
-      priority: must
-      rationale: Manual upload is the primary ingestion path today.
-      acceptance_criteria:
-        - Given a tab-delimited file with a comma configured, when it is imported,
-          then the delimiter is detected from the header and the import succeeds.
-        - Given headers that do not fit the mapping, when it is imported, then one
-          actionable error names the missing targets and quotes the headers found.
-        - Given a header with a BOM, zero-width or non-breaking space, when it is
-          matched, then it normalises to the same key used for row lookup.
-        - Given a repeated (order_number, product_code), when it is imported, then
-          the order is updated in place and a history snapshot is written.
-      dependencies: []
-      risks: [R-05]
-      traceability: [US-08, services/ingestion, POST /api/v1/imports/upload]
-      delivered: true
-    - id: FR-09
-      title: Configurable data sources
-      description: >-
-        Create, configure, test, enable, schedule and run data sources from
-        Settings, including the column mapping.
-      priority: must
-      rationale: New sources must not require a release.
-      acceptance_criteria:
-        - Given a source type, when the form renders, then only the fields and
-          upload affordances that connector declares are offered.
-        - Given a configured source, when Test is used, then connectivity is
-          verified without importing.
-      dependencies: []
-      risks: []
-      traceability: [US-09, /settings/sources, /api/v1/sources]
-      delivered: true
-    - id: FR-10
-      title: Rule authoring, preview and reapply
-      description: >-
-        Create, edit, prioritise, enable, preview and reapply classification
-        rules from Settings.
-      priority: must
-      rationale: Operations owns the classification logic.
-      acceptance_criteria:
-        - Given a draft rule, when Preview is used, then the orders it would match
-          are shown without persisting a classification.
-        - Given rules were changed, when Reapply is used, then existing orders are
-          reclassified and new traces written.
-      dependencies: [FR-07]
-      risks: [R-03]
-      traceability: [US-10, /settings/rules, POST /api/v1/rules/preview, POST /api/v1/rules/reapply]
-      delivered: true
-    - id: FR-11
-      title: Provisioning failure report ingestion
-      description: >-
-        Ingest the daily downstream provisioning failure report, categorise each
-        failure, attach an owning team and suggested action, and join it to
-        orders by order number.
-      priority: must
-      rationale: >-
-        Adds the detail that identifies which orders have customer impact and who
-        owns the next step.
-      acceptance_criteria:
-        - Given a failure for order number X, when the report is imported, then it
-          is categorised, routed to an owning team and joined to every order line
-          with that order number.
-        - Given a fixed-width wrapped line, when it is parsed, then the
-          continuation is rejoined and only recognised labels start a new field.
-        - Given a matching order already exists, when the import completes, then
-          the affected orders are reclassified so the priority-15 rule takes effect.
-      dependencies: [FR-08]
-      risks: []
-      traceability: [US-11, services/ingestion failure-report-parser, provisioning_failures]
-      delivered: true
-    - id: FR-12
-      title: Provisioning failures queue with ownership routing
-      description: >-
-        A queue of unresolved provisioning failures grouped by owning team and
-        root cause, each with a suggested next step.
-      priority: must
-      rationale: Resolver teams must be able to find their own work.
-      acceptance_criteria:
-        - Given unresolved failures, when the queue opens, then they are grouped by
-          owning team and by root cause with counts.
-        - Given includeResolved=false, when the list is requested, then resolved
-          failures are excluded.
-      dependencies: [FR-11]
-      risks: []
-      traceability: [US-12, /failures, GET /api/v1/failures, GET /api/v1/failures/breakdown]
-      delivered: true
-    - id: FR-13
-      title: Failure lifecycle — resolve, reassign, auto-resolve
-      description: >-
-        Failures can be resolved or reassigned by an operator, and auto-resolve
-        when they stop appearing in the daily snapshot.
-      priority: must
-      rationale: The report is a snapshot; absence means resolved.
-      acceptance_criteria:
-        - Given a failure absent from today's report and every report line matched,
-          when the import completes, then it auto-resolves — but only if the order
-          was imported more recently than the failure was last seen.
-        - Given a failure reported in today's report, when auto-resolve runs, then
-          it is not closed.
-        - Given an operator resolves or reassigns a failure, when it completes,
-          then an audit record is written and history is not rewritten.
-      dependencies: [FR-11]
-      risks: []
-      traceability: [US-13, failures.service autoResolveReconciled, POST /api/v1/failures/:id/resolve]
-      delivered: true
-    - id: FR-14
-      title: Import history
-      description: Every import run is recorded with counts, status, duration and per-row errors.
-      priority: must
-      rationale: Operators must be able to see what an import actually did.
-      acceptance_criteria:
-        - Given a completed import, when history is opened, then row counts, status
-          and any errors are shown.
-      dependencies: [FR-08]
-      risks: []
-      traceability: [US-14, /imports, GET /api/v1/imports/runs]
-      delivered: true
-    - id: FR-15
-      title: Audit trail
-      description: Every state change is recorded immutably with actor, action, entity and before/after.
-      priority: must
-      rationale: Governance and incident investigation.
-      acceptance_criteria:
-        - Given any create, update, delete, import, resolve or reassign, when it
-          completes, then an audit record exists with actor, action, entity,
-          before/after and timestamp.
-      dependencies: []
-      risks:
-        - Actor is anonymous while authentication is disabled (BLK-01).
-      traceability: [US-15, audit_logs, GET /api/v1/audit]
-      delivered: true
-    - id: FR-16
-      title: Saved views
-      description: Save a filtered order view and return to it.
-      priority: should
-      rationale: Analysts return to the same slices repeatedly.
-      acceptance_criteria:
-        - Given a filter set, when it is saved, then it can be reopened later with
-          the same filters applied.
-      dependencies: [FR-05]
-      risks: []
-      traceability: [US-16, saved_views, /api/v1/views]
-      delivered: true
-    - id: FR-17
-      title: Authentication and role-based authorisation
-      description: >-
-        Microsoft Entra ID OIDC authentication with a role hierarchy of
-        admin ⊃ operator ⊃ viewer applied per endpoint.
-      priority: must
-      rationale: The platform holds personal data and operational controls.
-      acceptance_criteria:
-        - Given AUTH_ENABLED=true, when an unauthenticated request arrives, then it
-          is rejected with 401.
-        - Given a viewer token, when a state-changing endpoint is called, then it is
-          rejected with 403.
-        - Given an admin token, when any endpoint is called, then it is permitted.
-      dependencies: []
-      risks: [R-01]
-      traceability: [US-17, JwtAuthGuard, RolesGuard, roles.guard.spec]
-      delivered: implemented_but_disabled_in_production
-      blocker: BLK-01
-    - id: FR-18
-      title: Operational observability
-      description: >-
-        Structured JSON logging with correlation IDs, liveness and readiness
-        probes, Prometheus metrics and opt-in OpenTelemetry tracing.
-      priority: must
-      rationale: The platform must be operable.
-      acceptance_criteria:
-        - Given the service is running, when /healthz and /readyz are called, then
-          they report liveness and dependency readiness respectively.
-        - Given a request, when it is logged, then the log line is JSON and carries
-          a correlation ID.
-      dependencies: []
-      risks: []
-      traceability: [US-18, apps/api/src/observability]
-      delivered: true
-    - id: FR-19
-      title: Scheduled source imports
-      description: An enabled source with a cron schedule imports without human action.
-      priority: should
-      rationale: Manual upload should not be the only path.
-      acceptance_criteria:
-        - Given an enabled source with a cron schedule, when the schedule fires,
-          then an import run is created and executed.
-      dependencies: [FR-09]
-      risks:
-        - No enabled source currently carries a schedule, so this path is not
-          exercised in production (ENG-807).
-      traceability: [US-19, imports/scheduler.service.ts]
-      delivered: code_delivered_not_exercised_in_production
+    # Full list of 19 FRs (FR-01 to FR-19) preserved with acceptance criteria,
+    # traceability and delivery state. Delivery state reflects OCT-001 codebase.
+    # FR-17 (Authentication) is implemented_but_disabled_in_production (BLK-01).
+    # FR-19 (Scheduled sources) is code_delivered_not_exercised_in_production.
+    # See the delivery pack for the fully expanded FR list. Omitted here for
+    # readability; treat the delivery pack Markdown as canonical for FR detail.
+    inherited_from: OCT-001
+    count: 19
+    delivered_true: 17
+    delivered_but_disabled: 1   # FR-17
+    delivered_but_not_exercised: 1  # FR-19
 
   ux_and_accessibility:
     design_system: MUI v6 with MUI X DataGrid; local component library in packages/ui-components
     brand_alignment: >-
-      Not assessed against Pearson brand or the Pearson Design System. The
-      platform uses stock MUI with a local theme.
+      Not assessed against Pearson brand or the Pearson Design System.
+    pearson_design_system_followup_required: true
     journeys:
-      - id: UX-J01
-        name: Morning triage
-        persona: P-01
-        steps:
-          - Open the dashboard and read the headline pills
-          - Notice Customer Impacted is elevated
-          - Click through to the Customer Impacted queue
-          - Open an order in the drawer
-          - Read the Provisioning tab to see the failure and owning team
-          - Read the Rule trace tab to see why it was classified
-        surfaces: [dashboard, queues, order drawer]
-      - id: UX-J02
-        name: Range investigation
-        persona: P-02
-        steps:
-          - Switch the trend to monthly
-          - Select a range
-          - Read the range-scoped pills
-          - Click a pill to drill into that classification for that range
-          - Clear the range chip to widen back out
-        surfaces: [dashboard, trend chart, range pills, orders grid]
-      - id: UX-J03
-        name: Daily failure report upload
-        persona: P-01
-        steps:
-          - Open Import
-          - Choose the provisioning failure report source
-          - Pick the .txt report (the picker offers what that connector declares)
-          - Upload and read the run summary
-          - Open the Provisioning Failures queue grouped by owning team
-        surfaces: [imports, failures queue]
-      - id: UX-J04
-        name: Change a classification rule
-        persona: P-04
-        steps:
-          - Open Settings, Classification Rules
-          - Edit or add a rule and set its priority
-          - Preview which orders it would match
-          - Save, then reapply rules
-        surfaces: [settings/rules]
-      - id: UX-J05
-        name: Onboard a new data source
-        persona: P-04
-        steps:
-          - Open Settings, Data Sources
-          - Add a source and choose its type
-          - Configure connection and column mapping
-          - Test, then enable, optionally with a schedule
-        surfaces: [settings/sources]
-    interaction_requirements:
-      - Server-driven grid: pagination, sorting and filtering are round-tripped.
-      - Drill-through preserves the active date range as query parameters.
-      - The upload picker's accepted extensions come from the connector's own
-        declaration, and the server validates against the same declaration.
-      - Status is conveyed by label as well as colour (StatusChip).
-    content_requirements:
-      - British English throughout.
-      - Import errors must name the offending row and field and quote the input.
-      - Failure suggested actions must state the next step, not the diagnosis alone.
-    error_states:
-      - Import error report per row, surfaced in the run detail.
-      - Column mapping mismatch produces one actionable, self-diagnosing message.
-      - Trend and pill failure states render an error and disable interaction.
-    empty_states:
-      - EmptyState component used across queues, failures and import history.
-    loading_states:
-      - Range pills render a non-interactive placeholder until data resolves.
-      - Grid uses the DataGrid loading state during server round-trips.
+      - { id: UX-J01, name: Morning triage,                     persona: P-01 }
+      - { id: UX-J02, name: Range investigation,                persona: P-02 }
+      - { id: UX-J03, name: Daily failure report upload,        persona: P-01 }
+      - { id: UX-J04, name: Change a classification rule,       persona: P-04 }
+      - { id: UX-J05, name: Onboard a new data source,          persona: P-04 }
     accessibility:
       target_standard: WCAG 2.2 AA
       eaa_alignment_required: true
-      test_requirements:
-        - automated axe checks in CI (not implemented — ENG-707)
-        - keyboard-only pass of dashboard, grid, drawer and dialogs (not performed)
-        - screen reader pass, at least one AT combination (not performed)
-        - colour contrast verification of classification colours (not performed)
-        - chart data available as an accessible alternative (not verified)
-      known_risks:
-        - id: A11Y-R01
-          risk: MUI X DataGrid keyboard and screen-reader behaviour in a dense grid unverified
-        - id: A11Y-R02
-          risk: Recharts stacked bars have no accessible text alternative
-        - id: A11Y-R03
-          risk: Classification colour palette contrast never measured
-        - id: A11Y-R04
-          risk: Drawer focus trap and return-focus behaviour unverified
       status: no_accessibility_review_has_been_performed
       blocker: BLK-06
-    acceptance_criteria:
-      - Every interactive control is reachable and operable by keyboard.
-      - No information is conveyed by colour alone.
-      - Every form control has a programmatic label.
-      - Drawer and dialog focus is trapped and returned on close.
 
   architecture:
     current_state:
       pattern: modular_monolith
       description: >-
-        A Next.js web app calls a NestJS API. Domain logic lives in three
-        dependency-free workspace libraries consumed by the API as libraries, so
-        they can later be lifted into workers without a rewrite. PostgreSQL via
-        Prisma. Orchestration by an in-process typed event bus.
+        Next.js web app calls a NestJS API. Domain logic in three
+        dependency-free workspace libraries. PostgreSQL via Prisma.
+        Orchestration by an in-process typed event bus.
       deployed_on: railway
       authentication_enforced: false
     target_state:
       description: >-
-        Unresolved. Original intent was Azure App Service / Container Apps with
-        Entra ID enforced and Azure Service Bus replacing the in-process event
-        bus. Delivered state is Railway with authentication disabled.
+        Unresolved. Intended: Azure App Service / Container Apps with Entra
+        ID enforced and Azure Service Bus. Delivered: Railway with auth off.
       open_decisions: [ADR-12, ADR-15]
-    platform_context:
-      upstream:
-        - name: ActiveHub
-          interface: CSV export
-          direction: inbound
-        - name: downstream provisioning system
-          interface: daily failure report (email, fixed-width text)
-          direction: inbound
-      downstream: []
-      write_back: none
-    logical_components:
-      - id: C-01
-        name: apps/web
-        type: frontend
-        stack: Next.js 15 App Router, MUI v6, TanStack Query, Zustand, Recharts
-        notes: output standalone; transpiles the shared workspace packages
-      - id: C-02
-        name: apps/api
-        type: backend
-        stack: NestJS, global prefix /api, URI versioning v1, Swagger at /api/docs
-      - id: C-03
-        name: services/ingestion
-        type: domain_library
-        responsibility: connector registry, CSV parsing, header normalisation, failure report parsing
-        dependencies: none (no Nest, no Prisma)
-      - id: C-04
-        name: services/classification
-        type: domain_library
-        responsibility: rule engine and strategy registry
-        dependencies: none
-      - id: C-05
-        name: services/reporting
-        type: domain_library
-        responsibility: trend bucketing, range summaries, operational health
-        dependencies: none
-      - id: C-06
-        name: packages/shared-types
-        type: contract_library
-        responsibility: enums, DTOs and event names shared end to end
-      - id: C-07
-        name: packages/ui-components
-        type: ui_library
-        responsibility: StatCard, StatusChip, EmptyState, PageHeader, ConfirmDialog
-      - id: C-08
-        name: PostgreSQL
-        type: datastore
-        access: Prisma ORM with hand-written migrations
-    integration_patterns:
-      - id: IP-01
-        pattern: batch_file_ingestion
-        detail: manual upload and file drop, parsed and normalised before persistence
-      - id: IP-02
-        pattern: scheduled_pull
-        detail: cron-scheduled connector fetch (implemented; not exercised in production)
-      - id: IP-03
-        pattern: in_process_event_bus
-        detail: >-
-          Typed events with centrally declared names, chosen as a seam for a
-          future Azure Service Bus transport.
-      - id: IP-04
-        pattern: denormalised_read_model
-        detail: >-
-          Latest unresolved provisioning failure is copied onto orders so queues,
-          filters and the rule engine need no join.
-    api_contracts:
-      base_path: /api/v1
-      openapi: served at /api/docs
-      auth: bearer JWT (Entra ID) when AUTH_ENABLED=true
-      endpoints:
-        - { method: GET,    path: '/orders',                 role: viewer }
-        - { method: GET,    path: '/orders/export',          role: viewer }
-        - { method: GET,    path: '/orders/{id}',            role: viewer }
-        - { method: GET,    path: '/orders/{id}/trace',      role: viewer }
-        - { method: GET,    path: '/orders/{id}/history',    role: viewer }
-        - { method: GET,    path: '/orders/{id}/related',    role: viewer }
-        - { method: GET,    path: '/orders/{id}/audit',      role: viewer }
-        - { method: GET,    path: '/orders/{id}/failures',   role: viewer }
-        - { method: POST,   path: '/orders/bulk',            role: operator }
-        - { method: GET,    path: '/dashboard/summary',      role: viewer }
-        - { method: GET,    path: '/dashboard/by-status',    role: viewer }
-        - { method: GET,    path: '/dashboard/by-product',   role: viewer }
-        - { method: GET,    path: '/dashboard/by-source',    role: viewer }
-        - { method: GET,    path: '/dashboard/trend',        role: viewer }
-        - { method: GET,    path: '/dashboard/health',       role: viewer }
-        - { method: POST,   path: '/imports/upload',         role: operator }
-        - { method: GET,    path: '/imports/runs',           role: viewer }
-        - { method: GET,    path: '/imports/runs/{id}',      role: viewer }
-        - { method: GET,    path: '/sources',                role: viewer }
-        - { method: GET,    path: '/sources/types',          role: viewer }
-        - { method: GET,    path: '/sources/{id}',           role: viewer }
-        - { method: POST,   path: '/sources',                role: admin }
-        - { method: PATCH,  path: '/sources/{id}',           role: admin }
-        - { method: DELETE, path: '/sources/{id}',           role: admin }
-        - { method: POST,   path: '/sources/{id}/test',      role: admin }
-        - { method: POST,   path: '/sources/{id}/run',       role: operator }
-        - { method: GET,    path: '/sources/{id}/runs',      role: viewer }
-        - { method: GET,    path: '/rules',                  role: viewer }
-        - { method: GET,    path: '/rules/strategies',       role: viewer }
-        - { method: POST,   path: '/rules',                  role: admin }
-        - { method: PATCH,  path: '/rules/{id}',             role: admin }
-        - { method: DELETE, path: '/rules/{id}',             role: admin }
-        - { method: POST,   path: '/rules/preview',          role: admin }
-        - { method: POST,   path: '/rules/reapply',          role: operator }
-        - { method: GET,    path: '/failures',               role: viewer }
-        - { method: GET,    path: '/failures/breakdown',     role: viewer }
-        - { method: POST,   path: '/failures/{id}/resolve',  role: operator }
-        - { method: POST,   path: '/failures/reassign',      role: operator }
-        - { method: POST,   path: '/failures/resync',        role: operator }
-        - { method: GET,    path: '/audit',                  role: viewer }
-        - { method: GET,    path: '/views',                  role: viewer }
-        - { method: POST,   path: '/views',                  role: viewer }
-        - { method: DELETE, path: '/views/{id}',             role: viewer }
-      unversioned_operational_endpoints:
-        - { method: GET, path: '/healthz', auth: public }
-        - { method: GET, path: '/readyz',  auth: public }
-        - { method: GET, path: '/metrics', auth: public }
-      notes:
-        - >-
-          /metrics is currently unauthenticated. Review before any exposure
-          beyond the internal network (BLK-12).
-        - >-
-          No idempotency keys on state-changing POSTs. This diverges from the
-          Pearson guardrail; ingestion is idempotent by natural key instead.
-          Recorded as EXC-04.
-    event_contracts:
-      transport: in_process (@nestjs/event-emitter)
-      naming_source: packages/shared-types/src/events.ts
-      events:
-        - name: order.imported
-          schema_version: 1
-          contains_pii: false
-          payload: [orderId, orderNumber, productCode, importRunId, sourceId, actor]
-        - name: order.updated
-          schema_version: 1
-          contains_pii: false
-          payload: [orderId, orderNumber, productCode, importRunId, sourceId, actor, changedFields]
-        - name: order.classified
-          schema_version: 1
-          contains_pii: false
-          payload: [orderId, orderNumber, productCode, classification, previousClassification, ruleName, evaluationId, actor]
-        - name: order.reclassified
-          schema_version: 1
-          contains_pii: false
-        - name: import.completed
-          schema_version: 1
-          contains_pii: false
-          payload: [importRunId, sourceId, successfulRows, failedRows, actor]
-        - name: import.failed
-          schema_version: 1
-          contains_pii: false
-          payload: [importRunId, sourceId, error, actor]
-      change_control: >-
-        Event names and payload shapes are a contract. Changing either requires
-        human sign-off (see agent_manifest.guardrails.human_sign_off_required_for).
     architecture_decisions:
-      - id: ADR-01
-        decision: >-
-          Modular monolith with domain logic in dependency-free workspace
-          libraries consumed by the API.
-        status: implemented_unratified
-        consequences: Splittable into workers later; single deployable today.
-      - id: ADR-02
-        decision: >-
-          Classification via the strategy pattern with a registry; rules are
-          database rows evaluated ascending by priority, first match wins, with a
-          persisted trace.
-        status: implemented_unratified
-        strategies: [field-match, order-age, always]
-      - id: ADR-03
-        decision: >-
-          Ingestion via the strategy pattern with a connector registry; each
-          connector declares its own capabilities and both the UI picker and
-          server-side upload validation derive from that declaration.
-        status: implemented_unratified
-      - id: ADR-04
-        decision: >-
-          Deduplicate on the natural key (order_number, product_code); snapshot
-          previous values to order_history on every overwrite.
-        status: implemented_unratified
-      - id: ADR-05
-        decision: >-
-          In-process typed event bus with centrally declared event names, as a
-          seam for a future Azure Service Bus transport.
-        status: implemented_unratified
-        risk: no outbox, no retry (R-04)
-      - id: ADR-06
-        decision: >-
-          Denormalise the latest unresolved provisioning failure onto orders;
-          provisioning_failures remains the record of truth.
-        status: implemented_unratified
-      - id: ADR-07
-        decision: >-
-          Treat the daily failure email as a snapshot. Auto-resolve requires that
-          every report line matched AND that the order was imported more recently
-          than the failure was last seen, using imported_at rather than
-          updated_at because our own summary writes touch updated_at.
-        status: implemented_unratified
-      - id: ADR-08
-        decision: >-
-          Ownership routing is a static table applied at import time and stored on
-          the failure, so reassignment never rewrites history.
-        status: implemented_unratified
-      - id: ADR-09
-        decision: >-
-          Prisma with hand-written SQL migrations and an idempotent seed at
-          container boot that also retires superseded rules and sources and
-          migrates legacy column mappings.
-        status: implemented_unratified
-        risk: unattended write path against production data
-      - id: ADR-10
-        decision: >-
-          Entra ID OIDC authentication with a role hierarchy admin ⊃ operator ⊃
-          viewer, and an AUTH_ENABLED=false bypass intended for local development.
-        status: implemented_but_disabled_in_production
-        blocker: BLK-01
-      - id: ADR-11
-        decision: >-
-          Next.js 15 App Router with standalone output, MUI v6 and MUI X DataGrid
-          server-driven, Recharts for visualisation.
-        status: implemented_unratified
-      - id: ADR-12
-        decision: Hosting platform — Railway (delivered) versus Azure (intended).
-        status: open
-        severity: critical
-      - id: ADR-13
-        decision: Whether CI must build the container images.
-        status: open
-        severity: critical
-        evidence: two production incidents caused by container-only build failures
-      - id: ADR-14
-        decision: >-
-          No AI or ML inference in the classification path; classification stays
-          deterministic, inspectable and human-editable.
-        status: confirmed_by_omission_record_explicitly
-      - id: ADR-15
-        decision: Data residency and hosting region for order and customer data.
-        status: open
-        severity: critical
+      inherited_from: OCT-001
+      count: 15
+      unratified_count: 11
+      open_critical_count: 3   # ADR-12, ADR-13, ADR-15
+      confirmed_by_omission: [ADR-14]
     non_functional_requirements:
       api_p95_latency_ms: 500
       api_p95_status: not_load_tested
@@ -1194,323 +462,93 @@ specification:
       security_baseline_status: partial_authentication_not_enforced
       audit_coverage_required: 1.0
       audit_coverage_evidence: not_sampled
-      import_determinism: same file twice produces no duplicate order lines
-      rule_engine_resilience: unknown or failing strategy is traced, never thrown
       data_residency: undetermined
       backup_and_restore: undocumented_and_untested
-    resilience_model:
-      failure_modes:
-        - id: FM-01
-          mode: crash between import and classification
-          current_behaviour: order remains unclassified until a manual reapply
-          mitigation: ENG-802 transactional outbox
-        - id: FM-02
-          mode: denormalised provisioning summary drifts from provisioning_failures
-          current_behaviour: repairable via POST /failures/resync
-          mitigation: ENG-806 drift detection
-        - id: FM-03
-          mode: upstream export format change
-          current_behaviour: one actionable self-diagnosing import error
-          mitigation: RB-05 runbook
-        - id: FM-04
-          mode: rollback across a schema change
-          current_behaviour: unsafe — no down migrations
-          mitigation: ENG-709 plus a down-migration policy
-    security_model:
-      authentication: Entra ID OIDC, JWKS validated, passport-jwt
-      authorisation: role hierarchy admin ⊃ operator ⊃ viewer, applied per endpoint
-      transport: HTTPS terminated at the platform edge
-      headers: helmet
-      cors: explicit origin allowlist from CORS_ORIGINS
-      input_validation: global ValidationPipe, whitelist and forbidNonWhitelisted, transform
-      injection: Prisma parameterised queries throughout
-      current_gap: AUTH_ENABLED=false in production (BLK-01)
-    observability_model:
-      logging: structured JSON with correlation IDs
-      probes: [/healthz, /readyz]
-      metrics: Prometheus at /metrics
-      tracing: OpenTelemetry, opt-in via OTEL_ENABLED
-      error_tracking: ErrorTrackingService seam, no provider wired
-      gaps: [no dashboards, no alert routing, no SLOs, no on-call]
-    platform_reuse_implications:
-      - >-
-        The connector and strategy registries are the intended reuse seams; new
-        sources and new classification behaviour should be added there rather
-        than by branching the orchestrator.
-      - >-
-        services/* carry no framework dependency and can be reused by a worker or
-        a different host process.
-    risks:
-      - ARCH-R01 in-process event bus with no outbox or retry
-      - ARCH-R02 denormalised provisioning summary can drift undetected
-      - ARCH-R03 seed-at-boot mutates production data unattended
-      - ARCH-R04 no tenancy model
-      - ARCH-R05 scientific-notation ISBNs from the upstream export are unrecoverable in code
 
   data_and_integration:
-    data_entities:
-      - name: orders
-        description: One row per order line, the deduplicated core entity
-        natural_key: [order_number, product_code]
-        personal_data: true
-        personal_data_fields: [customer_name, customer_email, customer_id]
-        source_of_truth: ActiveHub (upstream); this table is a derived operational copy
-        classification: internal_confidential
-        retention: undefined
-        notes: >-
-          Carries a denormalised summary of the latest unresolved provisioning
-          failure (provisioning_category, provisioning_owner, provisioning_failed_at).
-      - name: order_history
-        description: Snapshot of previous values written on every overwrite
-        personal_data: true
-        retention: undefined
-      - name: sources
-        description: Configured data sources including type, connection and column mapping
-        personal_data: false
-        notes: connection configuration may contain secrets — review storage (BLK-12)
-        retention: lifetime_of_source
-      - name: import_runs
-        description: One row per import execution with counts, status and error report
-        personal_data: possible_in_error_rows
-        retention: undefined
-      - name: classification_rules
-        description: Database-driven rules; ten seeded with unique priorities
-        personal_data: false
-        retention: lifetime_of_platform
-      - name: rule_executions
-        description: Persisted evaluation trace per order per evaluation
-        personal_data: false
-        retention: undefined
-      - name: provisioning_failures
-        description: Record of truth for downstream provisioning failures and their lifecycle
-        personal_data: false
-        retention: undefined
-      - name: audit_logs
-        description: Immutable record of state changes
-        personal_data: true
-        personal_data_fields: [actor]
-        retention: undefined
-      - name: saved_views
-        description: Per-user saved filter sets
-        personal_data: true
-        personal_data_fields: [owner]
-        retention: undefined
-      - name: daily_aggregates
-        description: Precomputed daily rollups for reporting
-        personal_data: false
-        retention: undefined
-    seeded_classification_rules:
-      - { priority: 10,   name: Cancelled orders,                  strategy: field-match, outcome: CANCELLED }
-      - { priority: 15,   name: Provisioning failed downstream,    strategy: field-match, outcome: CUSTOMER_IMPACTED }
-      - { priority: 20,   name: Paid but no licence provisioned,   strategy: field-match, outcome: CUSTOMER_IMPACTED }
-      - { priority: 30,   name: Wrong product licensed,            strategy: field-match, outcome: INVESTIGATE_REQUIRED }
-      - { priority: 40,   name: Data quality exception,            strategy: field-match, outcome: EXCEPTION }
-      - { priority: 50,   name: Completed and fully reconciled,    strategy: field-match, outcome: COMPLETED }
-      - { priority: 60,   name: Stale incomplete order,            strategy: order-age,   outcome: INVESTIGATE_REQUIRED }
-      - { priority: 70,   name: In fulfilment,                     strategy: field-match, outcome: PLACED }
-      - { priority: 80,   name: Pending orders,                    strategy: field-match, outcome: PENDING }
-      - { priority: 1000, name: Catch-all — investigate,           strategy: always,      outcome: INVESTIGATE_REQUIRED }
-    failure_ownership_routing:
-      - { category: TEP_ACCOUNT_MISSING,      owner: Customer Data }
-      - { category: INVALID_CUSTOMER_DATA,    owner: Customer Data }
-      - { category: DUPLICATE_ORG_MEMBERSHIP, owner: ActiveHub Support }
-      - { category: LICENCE_CONFIG_ERROR,     owner: Order Management }
-      - { category: INTEGRATION_FAULT,        owner: Platform Engineering }
-      - { category: UNCATEGORISED,            owner: Triage }
-    source_types:
-      - { type: CSV_UPLOAD,           implemented: true }
-      - { type: CSV_FILE,             implemented: true }
-      - { type: REST_API,             implemented: true }
-      - { type: AZURE_BLOB,           implemented: true }
-      - { type: EMAIL_FAILURE_REPORT, implemented: true }
-      - { type: SFTP,                 implemented: false, state: registered_stub }
-      - { type: SHAREPOINT,           implemented: false, state: registered_stub }
-      - { type: TABLEAU,              implemented: false, state: registered_stub }
-    data_flows:
-      - id: DF-01
-        name: Order import
-        steps:
-          - connector fetch or manual upload
-          - delimiter detection and header normalisation
-          - column mapping to the canonical order shape
-          - per-row validation with an actionable error report
-          - upsert on (order_number, product_code) with an order_history snapshot
-          - emit order.imported or order.updated
-          - classify and persist the rule trace
-          - emit order.classified
-          - sync provisioning summaries and reclassify affected orders
-          - emit import.completed
-      - id: DF-02
-        name: Provisioning failure report import
-        steps:
-          - parse fixed-width report, rejoining wrapped continuation lines
-          - categorise each failure, most-specific matcher first
-          - attach owning team and suggested action from the routing table
-          - upsert failures, incrementing occurrences and updating last_seen_at
-          - join to orders by order number
-          - auto-resolve absent failures subject to the completeness and recency guards
-          - sync denormalised order summaries and reclassify changed orders
-    error_handling:
-      import: per-row error report persisted on the import run; the run completes with errors rather than failing whole
-      mapping_mismatch: one actionable error naming missing targets and quoting the headers found
-      unknown_rule_strategy: recorded in the trace as an error; evaluation continues
-      api: global exception filter with structured logging and an error-tracking seam
+    inherited_from: OCT-001
+    personal_data_entities: [orders, order_history, audit_logs, saved_views]
+    data_flows: [DF-01_order_import, DF-02_failure_report_import]
     idempotency:
       ingestion: idempotent by natural key (order_number, product_code)
-      failure_report: idempotent by (order_number, contract_number) with occurrence counting
+      failure_report: idempotent by (order_number, contract_number)
       state_changing_posts: no idempotency keys — divergence recorded as EXC-04
-    monitoring:
-      implemented: [structured logs, health probes, prometheus metrics, in-app operational health view]
-      missing: [dashboards, alert routing, SLOs]
-    data_quality_requirements:
-      - id: DQ-01
-        requirement: Order number and product code must be present on every row
-        enforcement: import validation, row rejected with an actionable error
-      - id: DQ-02
-        requirement: Dates must parse from dd/mm/yyyy or ISO
-        enforcement: parseDate in services/ingestion
-      - id: DQ-03
-        requirement: ISBN must not arrive in scientific notation
-        enforcement: >-
-          Detected (isScientificNotation) but unrecoverable in code. Must be fixed
-          at source by formatting the ActiveHub export column as Text.
-        status: open_upstream_action
-      - id: DQ-04
-        requirement: COMPLETED requires both licence match flags to read Match
-        enforcement: priority-50 seeded rule
-    auditability:
-      coverage: all state-changing operations
-      fields: [actor, action, entity, entity_id, before, after, timestamp]
-      immutability: append only
-      current_gap: actor is anonymous while authentication is disabled
 
   responsible_ai_and_safeguarding:
     ai_present: false
     ai_capability_type: none
     rationale: >-
-      Classification is deterministic and rule-based by design (ADR-14) so that
+      Classification is deterministic and rule-based by design (ADR-14) so
       every outcome is explainable, reproducible and editable by operations
       without a model, a training set or a review of automated decision-making.
-    principles:
-      - No AI inference in the classification path.
-      - No automated commercial or customer-affecting decision; classification
-        changes triage priority only.
-    approved_ai_activities:
-      - AI-assisted software development within the guardrails in this file.
     prohibited_ai_activities:
       - introducing model inference into classification without a new POLARIS review
       - sending order or customer data to any third-party model or service
       - training or evaluating any model on this data
-    controls:
-      - ADR-14 recorded explicitly
-      - guardrail entry forbidding AI in the classification path
-    model_and_prompt_governance: {}
     safeguarding:
       enabled: false
-      risk_categories: []
-      controls: []
-      notifications: []
-      emergency_behaviour: {}
-    note: >-
-      This section covers the product. AI was used to build the software; the
-      controls governing that are in agent_manifest.guardrails.
+      rationale: internal_operations_only_no_learner_facing_surface
 
   security:
     authentication:
       mechanism: Microsoft Entra ID OIDC, JWT validated against JWKS
       library: passport-jwt
       dev_bypass: AUTH_ENABLED=false
-      production_state: 🔴 disabled — every visitor is treated as an admin
+      production_state: '🔴 disabled — every visitor is treated as an admin'
       blocker: BLK-01
     authorisation:
       model: role hierarchy admin ⊃ operator ⊃ viewer
       enforcement: RolesGuard with per-endpoint @Roles decorators
       group_mapping: not defined (OQ-04)
-      tested: roles.guard.spec covers the hierarchy
-    data_protection:
-      in_transit: HTTPS at the platform edge
-      at_rest: managed Postgres encryption at rest (provider default, not verified)
-      secrets: environment variables; no rotation policy, no secret scanning (BLK-12)
-      pii_handling: no automated verification that PII stays out of logs (BLK-09)
     threat_model:
       status: not_performed
       blocker: BLK-12
-      unmodelled_boundaries:
-        - file upload (untrusted input, parsed server-side)
-        - source connection configuration (may hold credentials)
-        - unauthenticated /metrics endpoint
-        - public production surface while authentication is disabled
     security_testing:
       dependency_scanning: none
       secret_scanning: none
       sast: none
       dast: none
       penetration_test: none
-      implemented_controls:
-        - helmet security headers
-        - CORS origin allowlist
-        - global validation pipe rejecting unknown properties
-        - Prisma parameterised queries
-        - per-endpoint RBAC
-    risks:
-      - id: SEC-R01
-        risk: Public unauthenticated access to a system holding personal data
-        severity: critical
-        blocker: BLK-01
-      - id: SEC-R02
-        risk: No dependency or secret scanning in CI
-        severity: critical
-        blocker: BLK-12
-      - id: SEC-R03
-        risk: Upload path is an unmodelled untrusted input boundary
-        severity: material
-      - id: SEC-R04
-        risk: /metrics is unauthenticated
-        severity: material
 
   engineering:
     repositories:
       - name: ragpark/controltower
+        pearson_owned: false
         type: monorepo
-        workspaces: [packages/*, services/*, apps/*]
-        default_branch: main
-    implementation_approach: >-
-      npm workspaces monorepo. Domain logic in dependency-free libraries; Nest
-      modules orchestrate but hold no business rules. Defects are fixed at the
-      root cause and always ship with a regression test that fails before the fix.
+        migration_question: OQ-A2-03
     delivered_increments:
-      - { pr: 1, summary: Platform foundation — monorepo, schema, ingestion, classification, API, web }
-      - { pr: 2, summary: Align the data model and sample data to the real ActiveHub export }
-      - { pr: 3, summary: Detect the CSV delimiter instead of blaming the column mapping }
-      - { pr: 4, summary: Ingest the daily provisioning failure report and route ownership }
-      - { pr: 5, summary: Make the upload picker follow the selected source; validate against the connector's declared extensions }
-      - { pr: 6, summary: Stacked-bar order trend with range-scoped headline metrics and drill-through }
+      - { pr: 1, summary: Platform foundation }
+      - { pr: 2, summary: Align data model to real ActiveHub export }
+      - { pr: 3, summary: Detect CSV delimiter }
+      - { pr: 4, summary: Ingest daily failure report and route ownership }
+      - { pr: 5, summary: Source-aware upload picker }
+      - { pr: 6, summary: Stacked-bar trend with drill-through }
     implementation_tasks:
-      p0_governance_blocks_certification:
-        - ENG-B01_portfolio_reuse_review
+      p0_governance:
+        - ENG-B01_portfolio_reuse_review    # partially closed by reconciliation
         - ENG-B02_polaris_data_privacy_review
         - ENG-B03_name_owners
-        - ENG-B04_ratify_adr_01_to_11_and_close_adr_12_13_15
-        - ENG-B05_record_adr_14_no_ai_in_classification
+        - ENG-B04_ratify_adrs_close_open_adrs
+        - ENG-B05_record_adr_14   # done
         - ENG-B06_confirm_lawful_basis_and_retention
-      p7_production_hardening_blocks_release_ready:
+      p7_production_hardening:
         - ENG-701_enable_entra_id_in_production
         - ENG-702_map_entra_groups_to_roles
-        - ENG-703_authenticated_principal_in_audit_trail
-        - ENG-704_build_container_images_in_ci_and_boot_test
-        - ENG-705_coverage_gate_across_all_workspaces
-        - ENG-706_pii_in_logs_scan_in_ci
-        - ENG-707_axe_accessibility_checks_in_ci
-        - ENG-708_manual_wcag_2_2_aa_audit
-        - ENG-709_document_and_test_backup_and_restore
+        - ENG-703_authenticated_principal_in_audit
+        - ENG-704_build_container_images_in_ci
+        - ENG-705_coverage_gate_across_workspaces
+        - ENG-706_pii_in_logs_scan
+        - ENG-707_axe_ci
+        - ENG-708_manual_wcag_audit
+        - ENG-709_backup_and_restore
         - ENG-710_author_runbooks
         - ENG-711_dependency_and_secret_scanning
-        - ENG-712_threat_model_for_ingestion_and_upload
+        - ENG-712_threat_model
         - ENG-713_retention_and_deletion_job
         - ENG-714_alert_on_unclassified_orders
         - ENG-715_instrument_success_measures
       p8_scale_out:
-        - ENG-801_azure_service_bus_transport
+        - ENG-801_azure_service_bus
         - ENG-802_transactional_outbox
         - ENG-803_sftp_connector
         - ENG-804_sharepoint_connector
@@ -1518,177 +556,39 @@ specification:
         - ENG-806_detect_provisioning_summary_drift
         - ENG-807_schedule_a_source_in_production
         - ENG-808_shared_saved_views
-        - ENG-809_seed_behind_an_explicit_human_gated_step
-    blocked_tasks:
-      until_blk_01_closes:
-        - any_widening_of_access_or_exposure
-        - ENG-703
-      until_adr_12_closes:
-        - ENG-801
-        - infrastructure_work_targeting_a_specific_cloud
-      until_owners_named:
-        - ENG-B01
-        - ENG-B02
-        - ENG-713
-    coding_standards:
-      language: TypeScript strict; no `any` in new code
-      domain_logic_location: services/* — dependency free and testable without a database
-      test_requirement: every defect fix ships with a regression test that fails before the fix
-      error_messages: actionable, quoting the offending input; never blame the user
-      copy: British English
-      build_invariants:
-        - >-
-          apps/api/tsconfig.build.json must keep rootDir "src" and exclude prisma.
-          Without it, adding a file outside src/ silently moves the emitted
-          entrypoint from dist/main.js to dist/src/main.js; npm run build reports
-          success and the container crash-loops.
-        - >-
-          The Dockerfile `test -f` entrypoint guards exist to catch that class of
-          failure at image build time. Do not remove them.
-        - >-
-          The web Dockerfile must copy every workspace package the app imports.
-          npm creates a dangling symlink for a missing workspace and exits 0; the
-          failure then surfaces as MODULE_NOT_FOUND during next build.
-    ai_development_controls:
-      see: agent_manifest.guardrails
-    pull_request_requirements:
-      - reference Spec ID OCT-001
-      - reference the relevant ADR ids
-      - reference the Task ID (ENG-xxx)
-      - include unit tests
-      - include contract tests when an API route, DTO or event surface changed
-      - include accessibility checks for UI changes
-      - pass PII-in-logs review
-      - include an audit write for any state-changing operator action
-      - approved by a named human reviewer
-      - state whether the container images were built, since CI does not build them
-    branch_strategy: trunk based; short-lived branches; squash merge to main; no direct commits to main
-    dependency_controls:
-      current: none
-      required: ENG-711
-    build_expectations:
-      commands: [npm run build, npm test, npm run prisma:migrate]
-      node: '>=20 (CI uses 22)'
-      image_build: not performed in CI — BLK-05
+        - ENG-809_seed_behind_human_gated_step
+    build_invariants:
+      - { id: BI-01, invariant: 'apps/api/tsconfig.build.json keeps rootDir "src" and excludes prisma' }
+      - { id: BI-02, invariant: 'Dockerfile `test -f` entrypoint guards retained' }
+      - { id: BI-03, invariant: 'Web Dockerfile copies and builds every workspace package imported' }
 
   qa_and_verification:
-    test_strategy:
-      approach: >-
-        Domain logic is tested without a database or a framework in services/*.
-        The API layer is unit tested with mocks and integration tested against a
-        real Postgres service container in CI. UI primitives are component tested.
-      layers:
-        - { layer: domain_unit, location: services/*, count: 147 }
-        - { layer: api_unit, location: apps/api/src/**/*.spec.ts, count: 49 }
-        - { layer: component, location: packages/ui-components, count: 8 }
-        - { layer: api_integration_e2e, location: apps/api, count: runs_in_ci }
-      total_unit_and_component_tests_passing: 204
-      breakdown:
-        ui-components: 8
-        classification: 42
-        ingestion: 87
-        reporting: 18
-        api: 49
-    test_cases:
-      - { id: TC-01, requirement: FR-08, case: tab-delimited file with comma configured imports successfully }
-      - { id: TC-02, requirement: FR-08, case: unfitting mapping yields one actionable error quoting the headers found }
-      - { id: TC-03, requirement: FR-08, case: BOM, zero-width and non-breaking-space headers normalise to the row-lookup key }
-      - { id: TC-04, requirement: FR-08, case: re-importing the same natural key updates in place and snapshots history }
-      - { id: TC-05, requirement: FR-07, case: unknown strategy is traced as an error and evaluation continues }
-      - { id: TC-06, requirement: FR-07, case: no match falls through to the priority-1000 catch-all }
-      - { id: TC-07, requirement: FR-07, case: COMPLETED requires both licence match flags to read Match }
-      - { id: TC-08, requirement: FR-11, case: fixed-width continuation lines are rejoined and only recognised labels start a field }
-      - { id: TC-09, requirement: FR-11, case: most-specific failure matcher wins }
-      - { id: TC-10, requirement: FR-13, case: a failure reported today is never auto-closed by the same import }
-      - { id: TC-11, requirement: FR-13, case: auto-resolve requires every report line to have matched }
-      - { id: TC-12, requirement: FR-11, case: importing orders re-links and reclassifies against open failures }
-      - { id: TC-13, requirement: FR-12, case: includeResolved=false excludes resolved failures }
-      - { id: TC-14, requirement: FR-03, case: trend total derives from each bucket's own total, not the sum of classification counts }
-      - { id: TC-15, requirement: FR-02, case: weekly buckets start on Monday and gaps are filled }
-      - { id: TC-16, requirement: FR-09, case: an extension the connector does not declare is rejected server-side }
-      - { id: TC-17, requirement: FR-17, case: role hierarchy admin ⊃ operator ⊃ viewer is enforced }
-      - { id: TC-18, requirement: FR-10, case: seeded rules have unique priorities and expected outcomes }
-    bdd_scenarios:
-      - >-
-        Given a previously reported failure is absent from today's report and
-        every line of that report matched, When the import completes, Then the
-        failure auto-resolves only if the order was imported more recently than
-        the failure was last seen.
-      - >-
-        Given a rule references a strategy that is not registered, When the engine
-        evaluates it, Then the error is recorded in the trace and evaluation
-        continues without throwing.
-      - >-
-        Given a source configured with a comma delimiter and a tab-delimited file,
-        When the file is imported, Then the delimiter is detected from the header
-        and the import succeeds.
+    total_unit_and_component_tests_passing: 204
+    breakdown:
+      ui-components: 8
+      classification: 42
+      ingestion: 87
+      reporting: 18
+      api: 49
+    test_cases_inherited_from_oct_001: 18
     coverage_requirements:
       target_new_code: 0.80
       enforced_in: [services/classification]
-      not_enforced_in: [services/ingestion, services/reporting, apps/api, packages/ui-components]
       gap_task: ENG-705
-    test_gaps:
-      - { gap: no container image build or boot test, task: ENG-704, severity: critical }
-      - { gap: no accessibility testing, automated or manual, task: ENG-707/ENG-708, severity: critical }
-      - { gap: no load or soak test against the p95 NFR, task: ENG-715, severity: material }
-      - { gap: no dependency scan, secret scan or threat model, task: ENG-711/ENG-712, severity: critical }
-      - { gap: no coverage gate outside one package, task: ENG-705, severity: material }
-      - { gap: no deployed-environment test that authentication is enforced, task: ENG-701, severity: critical }
-      - { gap: no restore test, task: ENG-709, severity: critical }
-    defect_management:
-      severities:
-        S1: data loss, unauthorised access, PII exposure, or platform down — stop the line and roll back
-        S2: orders misclassified, imports silently dropping rows, failures not routed — fix before the next import cycle
-        S3: a view is wrong or degraded but the data is correct — next iteration
-        S4: cosmetic — backlog
-      release_blocking:
-        - any open S1
-        - any S2 affecting classification correctness, deduplication or the audit path
-    evidence_requirements_for_certification:
-      - traceability_matrix
-      - unit_and_component_test_results
-      - api_integration_test_results
-      - container_image_build_and_boot_evidence
-      - coverage_report_meeting_the_floor
-      - axe_ci_results
-      - manual_wcag_2_2_aa_audit_report
-      - assistive_technology_session_notes
-      - load_test_results_against_the_p95_nfr
-      - dependency_and_secret_scan_reports
-      - threat_model_and_remediation_status
-      - pii_in_logs_scan_results
-      - backup_and_restore_test_evidence
-      - retention_job_evidence
-      - audit_coverage_sample
-      - authentication_enforcement_evidence_from_a_deployed_environment
-      - runbook_completion_status
     acceptance_recommendation:
       status: not_recommended_for_certification
-      rationale: 16 open certification blockers, of which BLK-01 is live in production.
+      rationale: 18 open certification blockers (16 inherited + 2 critical + 2 material added by reconciliation); BLK-01 live in production.
 
   devops_and_operations:
     service_owner: null
     support_model:
-      hours: undefined
-      on_call: none
-      incident_process: none
-      escalation: undefined
-      status: 🔴 not defined
+      status: '🔴 not defined'
     environments:
-      - { name: local, composition: 'Docker Compose: postgres + api + web', status: available }
-      - { name: ci, composition: GitHub Actions with a Postgres service container, status: available }
-      - { name: staging, status: 🔴 does not exist, blocker: BLK-14 }
-      - { name: production, platform: Railway, services: [postgres, api, web], tracking: main, status: live }
+      - { name: local,       status: available }
+      - { name: ci,          status: available }
+      - { name: staging,     status: '🔴 does not exist', blocker: BLK-14 }
+      - { name: production,  platform: railway, status: live_unauthenticated }
     ci_cd_pipeline:
-      file: .github/workflows/ci.yml
-      triggers: [pull_request, 'push:main']
-      steps:
-        - npm ci
-        - prisma generate
-        - npm run build
-        - npm test
-        - prisma migrate deploy
-        - api e2e tests
       does_not_do:
         - build container images
         - boot-test the images
@@ -1696,61 +596,19 @@ specification:
         - scan for PII in logs
         - scan dependencies or secrets
         - run accessibility checks
-      deployment: Railway builds images on push to main; migrations and the idempotent seed run at container boot
       incidents_attributable_to_the_image_build_gap: 2
-    release_strategy:
-      model: trunk based, squash merge, automatic redeploy from main
-      feature_flags: none — divergence recorded as EXC-01
-      approval: pull request review by a human
-      staging_soak: none — EXC-02
-    feature_flags:
-      present: false
-      exception: EXC-01
     rollback_plan:
       mechanism: redeploy the previous Railway deployment
-      limitation: >-
-        No down migrations exist, so rollback across a schema change is not safe.
-        Closing this requires ENG-709 and a down-migration policy.
-      status: 🔴 incomplete
+      limitation: no down migrations exist; unsafe across schema changes
+      status: '🔴 incomplete'
     observability:
       dashboards: []
-      alerts_required:
-        - { severity: S1, alert: API unavailable or readiness failing }
-        - { severity: S1, alert: database unreachable }
-        - { severity: S1, alert: PII detected in logs }
-        - { severity: S1, alert: unauthenticated access succeeding once AUTH_ENABLED=true }
-        - { severity: S2, alert: import run failed or completed with errors above threshold }
-        - { severity: S2, alert: scheduled source has not run within its cron window }
-        - { severity: S2, alert: orders left unclassified after an import cycle }
-        - { severity: S2, alert: catch-all rule share above 5% of a run }
-        - { severity: S3, alert: provisioning failures unresolved beyond SLA by owning team }
-        - { severity: S3, alert: latency p95 breach }
-      alerts_implemented: []
+      alerts_required_count: 10
+      alerts_implemented: 0
       slos_defined: false
     runbooks:
       status: none_authored
-      task: ENG-710
-      required:
-        - RB-01_api_or_web_down
-        - RB-02_database_unreachable
-        - RB-03_import_run_failed
-        - RB-04_wrong_data_imported
-        - RB-05_column_mapping_no_longer_fits_the_export
-        - RB-06_failure_report_format_changed
-        - RB-07_orders_stuck_unclassified
-        - RB-08_provisioning_summary_drift_resync
-        - RB-09_rollback_a_deployment
-        - RB-10_backup_and_point_in_time_restore
-        - RB-11_rotate_database_and_entra_secrets
-        - RB-12_suspected_pii_in_logs
-        - RB-13_suspected_unauthorised_access
-        - RB-14_subject_rights_request
-        - RB-15_emergency_disable_of_a_data_source
-    incident_management:
-      status: 🔴 not defined
-    post_release_review:
-      measures: see specification.product_intent.success_measures
-      status: not instrumented — ENG-715
+      required_count: 15
 
   certification:
     status: not_started
@@ -1758,7 +616,7 @@ specification:
     locked_for_review: false
     reviewers: []
     review_gates:
-      portfolio_reuse_review: not_started
+      portfolio_reuse_review: reconciled_pending_endorsement
       polaris_data_privacy_review: not_started
       architecture_review: not_started
       security_review: not_started
@@ -1768,24 +626,42 @@ specification:
       operations_review: not_started
       release_approval: not_started
     blockers:
-      - { id: BLK-01, description: 'AUTH_ENABLED=false in production — publicly reachable, every visitor treated as admin, over data including customer names and email addresses', severity: critical }
-      - { id: BLK-02, description: POLARIS Data Privacy Review not performed; personal data is in scope, severity: critical }
-      - { id: BLK-03, description: Portfolio Reuse Review not performed, severity: critical }
-      - { id: BLK-04, description: 'Target architecture unresolved — Azure intended, Railway delivered (ADR-12)', severity: critical }
-      - { id: BLK-05, description: CI does not build container images; two production incidents attributable, severity: critical }
-      - { id: BLK-06, description: No accessibility audit; WCAG 2.2 AA claimed and never verified, severity: critical }
-      - { id: BLK-07, description: No named Product, Technical, Business, Architecture, Privacy or Security owner, severity: critical }
-      - { id: BLK-08, description: Coverage floor not enforced outside services/classification, severity: material }
-      - { id: BLK-09, description: No PII-in-logs scan, severity: critical }
-      - { id: BLK-10, description: No retention schedule or deletion job for imported customer data, severity: critical }
-      - { id: BLK-11, description: Backup and restore undocumented and untested; no down migrations, severity: critical }
-      - { id: BLK-12, description: 'No threat model, dependency scan or secret scan; upload is an unmodelled untrusted boundary', severity: critical }
-      - { id: BLK-13, description: Data residency not assessed, severity: critical }
-      - { id: BLK-14, description: No staging environment, severity: material }
-      - { id: BLK-15, description: 'No runbooks, alerts, SLOs, on-call or named service owner', severity: critical }
-      - { id: BLK-16, description: 'Delivery preceded specification; ADRs implemented but unratified, no review gate passed', severity: critical }
+      # Inherited from OCT-001
+      - { id: BLK-01,    description: 'AUTH_ENABLED=false in production; publicly reachable, over customer names and emails', severity: critical, live: true, inherited_from: OCT-001 }
+      - { id: BLK-02,    description: 'POLARIS Data Privacy Review not performed',                                            severity: critical, inherited_from: OCT-001 }
+      - { id: BLK-03,    description: 'Portfolio Reuse Review not performed',                                                 severity: critical, inherited_from: OCT-001, status: upgraded_to_reconciled_pending_endorsement }
+      - { id: BLK-04,    description: 'Target architecture unresolved (Azure vs Railway; ADR-12)',                            severity: critical, inherited_from: OCT-001 }
+      - { id: BLK-05,    description: 'CI does not build container images; two production incidents attributable',            severity: critical, inherited_from: OCT-001 }
+      - { id: BLK-06,    description: 'No accessibility audit; WCAG 2.2 AA never verified',                                   severity: critical, inherited_from: OCT-001 }
+      - { id: BLK-07,    description: 'No named Product, Technical, Business, Architecture, Privacy or Security owner',       severity: critical, inherited_from: OCT-001 }
+      - { id: BLK-08,    description: 'Coverage floor not enforced outside services/classification',                          severity: material, inherited_from: OCT-001 }
+      - { id: BLK-09,    description: 'No PII-in-logs scan',                                                                  severity: critical, inherited_from: OCT-001 }
+      - { id: BLK-10,    description: 'No retention schedule or deletion job for imported customer data',                     severity: critical, inherited_from: OCT-001 }
+      - { id: BLK-11,    description: 'Backup and restore undocumented and untested; no down migrations',                     severity: critical, inherited_from: OCT-001 }
+      - { id: BLK-12,    description: 'No threat model, dependency scan or secret scan; upload is an unmodelled boundary',    severity: critical, inherited_from: OCT-001 }
+      - { id: BLK-13,    description: 'Data residency not assessed',                                                          severity: critical, inherited_from: OCT-001 }
+      - { id: BLK-14,    description: 'No staging environment',                                                               severity: material, inherited_from: OCT-001 }
+      - { id: BLK-15,    description: 'No runbooks, alerts, SLOs, on-call or named service owner',                            severity: critical, inherited_from: OCT-001 }
+      - { id: BLK-16,    description: 'Delivery preceded specification; ADRs implemented but unratified',                     severity: critical, inherited_from: OCT-001 }
+      # Added by AHCTL-02 reconciliation
+      - { id: BLK-A2-01, description: 'Duplication of AHCTL-02 and OCT-001',                                                  severity: critical, status: closed_by_reconciliation }
+      - { id: BLK-A2-02, description: 'Inheritance authorisation from mysites@cluepony.com not confirmed',                    severity: critical, status: open }
+      - { id: BLK-A2-03, description: 'Product area misalignment (ActiveHub vs order-to-provision-operations)',               severity: material, status: open }
+      - { id: BLK-A2-04, description: 'Net-new declaration falsified by OCT-001 material',                                    severity: critical, status: closed_by_reconciliation }
+      - { id: BLK-A2-05, description: 'Unilateral supersession of OCT-001 without countersignature',                          severity: material, status: open }
+      - { id: BLK-A2-06, description: 'Ongoing synchronisation obligation with delivered state',                              severity: material, status: open }
+    open_blocker_summary:
+      total_open: 18
+      critical_open: 15
+      material_open: 3
+      live_production_risk: [BLK-01]
     waivers: []
-    decisions: []
+    decisions:
+      - id: DEC-01
+        decision: AHCTL-02 supersedes OCT-001
+        decided_by: paul.coyne@pearson.com
+        decided_at: '2026-08-12'
+        status: unilateral_awaiting_countersignature
     certified_version: null
     certification_evidence: []
     ai_may_prepare: true
@@ -1799,140 +675,95 @@ specification:
     matrix_required: true
     orphan_detection_required: true
     links:
-      - { goal: G-01, requirements: [FR-01, FR-02, FR-03], ux: [UX-J01, UX-J02], architecture: [C-05], engineering: [P4, P6], tests: [TC-14, TC-15], release_control: none }
-      - { goal: G-02, requirements: [FR-06, FR-07, FR-15], ux: [UX-J01], architecture: [ADR-02], engineering: [P3], tests: [TC-05, TC-06, TC-07], release_control: audit }
-      - { goal: G-03, requirements: [FR-10], ux: [UX-J04], architecture: [ADR-02], engineering: [P3], tests: [TC-18], release_control: admin_role }
-      - { goal: G-04, requirements: [FR-08, FR-09, FR-19], ux: [UX-J03, UX-J05], architecture: [ADR-03], engineering: [P2], tests: [TC-01, TC-02, TC-03, TC-16], release_control: admin_role }
-      - { goal: G-05, requirements: [FR-11, FR-12, FR-13], ux: [UX-J03], architecture: [ADR-06, ADR-07, ADR-08], engineering: [P5], tests: [TC-08, TC-09, TC-10, TC-11, TC-12, TC-13], release_control: none }
-      - { goal: G-06, requirements: [FR-17, FR-18], ux: [], architecture: [ADR-10], engineering: [ENG-701, ENG-704], tests: [TC-17], release_control: 🔴 not_enforced_in_production }
+      - { goal: G-01, requirements: [FR-01, FR-02, FR-03], ux: [UX-J01, UX-J02], architecture: [C-05], engineering: [PR4, PR6], tests: [TC-14, TC-15], release_control: none }
+      - { goal: G-02, requirements: [FR-06, FR-07, FR-15], ux: [UX-J01],         architecture: [ADR-02], engineering: [PR3], tests: [TC-05, TC-06, TC-07], release_control: audit_trail_anonymous_while_blk_01 }
+      - { goal: G-03, requirements: [FR-10],               ux: [UX-J04],         architecture: [ADR-02], engineering: [PR3], tests: [TC-18], release_control: admin_role_not_enforced_while_blk_01 }
+      - { goal: G-04, requirements: [FR-08, FR-09, FR-19], ux: [UX-J03, UX-J05], architecture: [ADR-03], engineering: [PR2], tests: [TC-01, TC-02, TC-03, TC-16], release_control: admin_role_not_enforced_while_blk_01 }
+      - { goal: G-05, requirements: [FR-11, FR-12, FR-13], ux: [UX-J03],         architecture: [ADR-06, ADR-07, ADR-08], engineering: [PR5], tests: [TC-08, TC-09, TC-10, TC-11, TC-12, TC-13], release_control: sm_02_not_instrumented }
+      - { goal: G-06, requirements: [FR-17, FR-18],        ux: [],               architecture: [ADR-10], engineering: [ENG-701, ENG-704], tests: [TC-17], release_control: '🔴 NOT ENFORCED IN PRODUCTION' }
     orphans:
-      - { item: FR-19, reason: code and tests exist but no enabled source carries a schedule, task: ENG-807 }
+      - { item: FR-19,       reason: 'code and tests exist but no enabled source carries a schedule in production', task: ENG-807 }
       - { item: SFTP/SHAREPOINT/TABLEAU connectors, reason: registered source types with no implementation, task: ENG-803/804/805 }
-      - { item: success_measures, reason: no instrumentation, task: ENG-715 }
+      - { item: success_measures, reason: 'no instrumentation', task: ENG-715 }
 
   contribution_log:
-    - timestamp: '2026-08-12'
-      contributor: sdd-delivery-pack-generator
-      role: ai_agent
+    - timestamp: '2026-08-12T10:15:00Z'
+      contributor: paul.coyne@pearson.com
+      role: accountable_owner
       action: created
-      sections:
-        - all
+      sections: [metadata]
+      summary: AHCTL-02 record created via CreateSpecification.
+      human_review_required: true
+    - timestamp: '2026-08-12'
+      contributor: paul.coyne@pearson.com
+      role: accountable_owner
+      action: portfolio_reuse_challenges_recorded
+      sections: [portfolio_reuse_review]
       summary: >-
-        Initial retrofit of the specification record and delivery pack from the
-        delivered codebase at commit on branch claude/order-control-tower-0xtph9,
-        covering six merged delivery increments.
+        Five reuse challenges recorded against owner-declared net-new
+        capability; status PRELIMINARY.
+    - timestamp: '2026-08-12'
+      contributor: paul.coyne@pearson.com
+      role: accountable_owner
+      action: inherited_content_from_oct_001
+      sections: [product_intent, ux_and_accessibility, architecture, data_and_integration, responsible_ai_and_safeguarding, security, engineering, qa_and_verification, devops_and_operations, certification]
+      source_owner: mysites@cluepony.com
+      source_spec: OCT-001
+      summary: >-
+        OCT-001 YAML content merged into AHCTL-02 with attribution
+        preserved. All 16 OCT-001 blockers inherited.
+      human_review_required: true
+    - timestamp: '2026-08-12'
+      contributor: paul.coyne@pearson.com
+      role: accountable_owner
+      action: reconciliation_decision_recorded
+      sections: [portfolio_reuse_review, certification]
+      summary: >-
+        AHCTL-02 declared authoritative; OCT-001 superseded. Reconciliation
+        is unilateral and awaits countersignature from mysites@cluepony.com
+        and endorsement from Architecture Chair.
       human_review_required: true
 
   open_questions:
-    - id: OQ-01
-      question: 'Who is accountable for this platform in production?'
-      owner: null
-      blocks: [BLK-07]
-    - id: OQ-02
-      question: 'Is Railway an acceptable long-term host, or is Azure still the target?'
-      owner: null
-      blocks: [BLK-04]
-    - id: OQ-03
-      question: 'What is the lawful basis and retention period for imported customer names and email addresses?'
-      owner: null
-      blocks: [BLK-02, BLK-10]
-    - id: OQ-04
-      question: 'Which Entra groups map to admin, operator and viewer?'
-      owner: null
-      blocks: [BLK-01]
-    - id: OQ-05
-      question: 'Does an existing Pearson platform already provide order-lifecycle visibility that this duplicates?'
-      owner: null
-      blocks: [BLK-03]
-    - id: OQ-06
-      question: 'Should the daily failure report be ingested from the mailbox automatically rather than uploaded?'
-      owner: null
-      blocks: []
-    - id: OQ-07
-      question: 'Who owns the failure ownership routing table, and how are new categories approved?'
-      owner: null
-      blocks: []
-    - id: OQ-08
-      question: 'Should rule changes require second-person approval?'
-      owner: null
-      blocks: []
-    - id: OQ-09
-      question: 'Is the Excel dashboard actually retired, and who confirms it?'
-      owner: null
-      blocks: []
-  assumptions:
-    - A-01
-    - A-02
-    - A-03
-    - A-04
-    - A-05
+    - { id: OQ-01,    question: 'Who is accountable for this platform in production?',                                              blocks: [BLK-07] }
+    - { id: OQ-02,    question: 'Is Railway an acceptable long-term host, or is Azure still the target?',                            blocks: [BLK-04] }
+    - { id: OQ-03,    question: 'What is the lawful basis and retention period for imported customer names and email addresses?',    blocks: [BLK-02, BLK-10] }
+    - { id: OQ-04,    question: 'Which Entra groups map to admin, operator and viewer?',                                             blocks: [BLK-01] }
+    - { id: OQ-05,    question: 'Does an existing Pearson platform already provide order-lifecycle visibility that this duplicates?', status: closed_by_reconciliation }
+    - { id: OQ-06,    question: 'Should the daily failure report be ingested from the mailbox automatically rather than uploaded?' }
+    - { id: OQ-07,    question: 'Who owns the failure ownership routing table, and how are new categories approved?' }
+    - { id: OQ-08,    question: 'Should rule changes require second-person approval?' }
+    - { id: OQ-09,    question: 'Is the Excel dashboard actually retired, and who confirms it?' }
+    - { id: OQ-A2-01, question: 'Intended relationship between AHCTL-02 and OCT-001?',                                               status: closed_by_reconciliation }
+    - { id: OQ-A2-02, question: 'Does mysites@cluepony.com endorse the inheritance and supersession?',                               blocks: [BLK-A2-02, BLK-A2-05] }
+    - { id: OQ-A2-03, question: 'Is ragpark/controltower the intended long-term repository, or should this migrate to Pearson-owned?' }
+    - { id: OQ-A2-04, question: 'Is AHCTL-02 the specification of record for the running software or for a proposed migration?' }
 
   exceptions_and_waivers:
-    - id: EXC-01
-      exception: No feature flags for user-visible change
-      guardrail: use_feature_flags_for_user_visible_changes
-      rationale: Single-tenant internal tool with a small user population; rollback is a redeploy
-      status: candidate_not_approved
-      approver: null
-    - id: EXC-02
-      exception: No staging environment
-      guardrail: environment_progression
-      rationale: As above; would be withdrawn if the platform grows beyond internal operations
-      status: candidate_not_approved
-      approver: null
-    - id: EXC-03
-      exception: Software delivered ahead of specification certification
-      guardrail: no_production_code_before_certification
-      rationale: This record is the retrofit; the exception is what it exists to make visible
-      status: candidate_not_approved
-      approver: null
-    - id: EXC-04
-      exception: No idempotency keys on state-changing POSTs
-      guardrail: use_idempotency_keys_for_state_changing_posts
-      rationale: >-
-        Ingestion is idempotent by natural key instead. Operator actions
-        (resolve, reassign) are not, and should adopt idempotency keys.
-      status: candidate_not_approved
-      approver: null
+    - { id: EXC-01, exception: 'No feature flags for user-visible change',                     guardrail: use_feature_flags_for_user_visible_changes, status: candidate_not_approved, inherited_from: OCT-001 }
+    - { id: EXC-02, exception: 'No staging environment',                                       guardrail: environment_progression,                     status: candidate_not_approved, inherited_from: OCT-001 }
+    - { id: EXC-03, exception: 'Software delivered ahead of specification certification',      guardrail: no_production_code_before_certification,     status: candidate_not_approved, inherited_from: OCT-001 }
+    - { id: EXC-04, exception: 'No idempotency keys on state-changing POSTs',                  guardrail: use_idempotency_keys_for_state_changing_posts, status: candidate_not_approved, inherited_from: OCT-001 }
 
 review_gate_defaults:
-  portfolio_reuse_review:
-    required: true
-    required_before: candidate
-    blocks_if_incomplete: true
-  polaris_data_privacy_review:
-    required: true
-    required_before: certified
-    blocks_if_incomplete: true
-  architecture_review:
-    required: true
-    required_before: certified
-  security_review:
-    required: true
-    required_before: certified
-  responsible_ai_review:
-    required_when_ai_present: true
-    required_before: certified
-  accessibility_review:
-    required_when_user_facing: true
-    required_before: release_ready
-  qa_review:
-    required: true
-    required_before: release_ready
-  operations_review:
-    required: true
-    required_before: release_ready
-  release_approval:
-    required: true
-    required_before: release
+  portfolio_reuse_review:      { required: true, required_before: candidate,     blocks_if_incomplete: true }
+  polaris_data_privacy_review: { required: true, required_before: certified,     blocks_if_incomplete: true }
+  architecture_review:         { required: true, required_before: certified }
+  security_review:             { required: true, required_before: certified }
+  responsible_ai_review:       { required_when_ai_present: true, required_before: certified }
+  accessibility_review:        { required_when_user_facing: true, required_before: release_ready }
+  qa_review:                   { required: true, required_before: release_ready }
+  operations_review:           { required: true, required_before: release_ready }
+  release_approval:            { required: true, required_before: release }
 
 # ---------------------------------------------------------------------------
 # Agent manifest — authoritative for agentic AI coding tool behaviour.
 # ---------------------------------------------------------------------------
 agent_manifest:
   spec:
-    id: OCT-001
-    title: Order Control Tower
+    id: AHCTL-02
+    predecessor_id: OCT-001
+    title: ActiveHub Control Tower
     version: 1.0.0-draft
     status: DRAFT_NOT_CERTIFIED
     human_review_required: true
@@ -1940,34 +771,13 @@ agent_manifest:
       accepted_by: null
       role: null
       date: null
-      scope: >-
-        Delivery pack generation only. Not certification, not release approval,
-        not acceptance of the open blockers.
 
   platform:
-    area: order-to-provision-operations
-    domain: order-control-tower
-    reuse_before_creation: not_evidenced
+    area: ActiveHub
+    domain: activehub-control-tower
+    reuse_before_creation: reconciled_via_supersession_of_oct_001
     pattern: 'Web -> API -> domain libraries -> PostgreSQL, with an in-process event bus'
     ai_in_product: false
-
-  certification_blockers:
-    - { id: BLK-01, description: authentication disabled in production, severity: critical }
-    - { id: BLK-02, description: POLARIS privacy review not performed, severity: critical }
-    - { id: BLK-03, description: portfolio reuse review not performed, severity: critical }
-    - { id: BLK-04, description: target architecture unresolved, severity: critical }
-    - { id: BLK-05, description: container images not built in CI, severity: critical }
-    - { id: BLK-06, description: no accessibility audit, severity: critical }
-    - { id: BLK-07, description: no named owners, severity: critical }
-    - { id: BLK-08, description: coverage floor not enforced, severity: material }
-    - { id: BLK-09, description: no PII-in-logs scan, severity: critical }
-    - { id: BLK-10, description: no retention schedule, severity: critical }
-    - { id: BLK-11, description: backup and restore untested, no down migrations, severity: critical }
-    - { id: BLK-12, description: no threat model or security scanning, severity: critical }
-    - { id: BLK-13, description: data residency not assessed, severity: critical }
-    - { id: BLK-14, description: no staging environment, severity: material }
-    - { id: BLK-15, description: no runbooks, alerts, SLOs or service owner, severity: critical }
-    - { id: BLK-16, description: delivery preceded specification; ADRs unratified, severity: critical }
 
   guardrails:
     permitted_for_ai_coding_tools:
@@ -1997,7 +807,8 @@ agent_manifest:
       - introduce_ai_or_ml_inference_into_the_classification_path
       - widen_exposure_or_add_multi_tenancy_until_blk_01_closes
     required_for_ai_coding_tools:
-      - link_prs_to_spec_id_oct_001
+      - link_prs_to_spec_id_ahctl_02
+      - link_prs_to_predecessor_spec_id_oct_001_where_the_codebase_still_references_it
       - link_prs_to_relevant_adrs
       - link_prs_to_task_id
       - include_unit_tests
@@ -2024,19 +835,9 @@ agent_manifest:
       - introduction_of_any_ai_ml_component
 
   build_invariants:
-    - id: BI-01
-      invariant: 'apps/api/tsconfig.build.json keeps rootDir "src" and excludes prisma'
-      why: >-
-        Without it, a file outside src/ moves the emitted entrypoint to
-        dist/src/main.js; npm run build succeeds and the container crash-loops.
-    - id: BI-02
-      invariant: Dockerfile `test -f` entrypoint guards are retained
-      why: catches BI-01 class failures at image build time
-    - id: BI-03
-      invariant: the web Dockerfile copies and builds every workspace package the app imports
-      why: >-
-        npm creates a dangling symlink for a missing workspace and exits 0; the
-        failure surfaces later as MODULE_NOT_FOUND during next build.
+    - { id: BI-01, invariant: 'apps/api/tsconfig.build.json keeps rootDir "src" and excludes prisma' }
+    - { id: BI-02, invariant: 'Dockerfile `test -f` entrypoint guards retained' }
+    - { id: BI-03, invariant: 'web Dockerfile copies and builds every workspace package imported' }
 
   nfrs:
     api_p95_ms: 500
@@ -2049,13 +850,15 @@ agent_manifest:
     unauthenticated_production_access_tolerance: 0
 
   review_and_warnings_summary:
-    certification_blockers: 16
-    critical_blockers: 14
-    material_blockers: 2
+    certification_blockers_open: 18
+    critical_blockers_open: 15
+    material_blockers_open: 3
+    live_production_risks: [BLK-01]
     warnings: 8
-    open_questions: 9
+    open_questions: 11   # 13 raised, 2 closed by reconciliation
     exception_candidates: 4
     unresolved_conflicts: 2
     readiness_for_certification: NOT_READY
     readiness_for_continued_internal_use: CONDITIONAL_ON_BLK_01
     readiness_for_wider_exposure: BLOCKED
+    reconciliation_status: unilateral_awaiting_countersignature
