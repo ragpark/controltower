@@ -1,5 +1,5 @@
 'use client';
-import { notFound, useParams } from 'next/navigation';
+import { notFound, useParams, useSearchParams } from 'next/navigation';
 import Box from '@mui/material/Box';
 import { Classification } from '@control-tower/shared-types';
 import { PageHeader } from '@control-tower/ui-components';
@@ -35,13 +35,21 @@ const QUEUES: Record<string, { title: string; subtitle: string; classification: 
 
 export default function QueuePage() {
   const params = useParams<{ queue: string }>();
+  // Seeded when arriving from a range-scoped dashboard pill, so the queue shows
+  // the same orders the figure that was clicked counted.
+  const searchParams = useSearchParams();
   const queue = QUEUES[params.queue];
   if (!queue) notFound();
 
   return (
     <Box>
       <PageHeader title={queue.title} subtitle={queue.subtitle} />
-      <OrdersGrid queue={params.queue} classification={queue.classification} />
+      <OrdersGrid
+        queue={params.queue}
+        classification={queue.classification}
+        initialDateFrom={searchParams.get('dateFrom') ?? undefined}
+        initialDateTo={searchParams.get('dateTo') ?? undefined}
+      />
     </Box>
   );
 }

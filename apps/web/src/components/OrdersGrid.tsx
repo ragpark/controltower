@@ -46,6 +46,9 @@ export interface OrdersGridProps {
   /** Queue key for saved views; also fixes the classification filter. */
   queue: string;
   classification?: Classification;
+  /** Seeded from the URL when drilling in from a range-scoped dashboard pill. */
+  initialDateFrom?: string;
+  initialDateTo?: string;
 }
 
 /** Licence Manager reconciliation flag — "Not Match" is the actionable state. */
@@ -75,8 +78,15 @@ interface ViewConfig {
  * Server-driven data grid used by every operational queue:
  * search, filter, sort, export, saved views, bulk actions, drill-down.
  */
-export function OrdersGrid({ queue, classification }: OrdersGridProps) {
+export function OrdersGrid({
+  queue,
+  classification,
+  initialDateFrom,
+  initialDateTo,
+}: OrdersGridProps) {
   const openOrder = useAppStore((s) => s.openOrder);
+  const [dateFrom, setDateFrom] = useState(initialDateFrom);
+  const [dateTo, setDateTo] = useState(initialDateTo);
   const [pagination, setPagination] = useState<GridPaginationModel>({ page: 0, pageSize: 25 });
   const [sortModel, setSortModel] = useState<GridSortModel>([
     { field: 'importedAt', sort: 'desc' },
@@ -98,6 +108,8 @@ export function OrdersGrid({ queue, classification }: OrdersGridProps) {
     search: search || undefined,
     classification: classification ?? (classificationFilter || undefined),
     sourceId: sourceId || undefined,
+    dateFrom,
+    dateTo,
     sortBy: sortModel[0]?.field,
     sortDir: sortModel[0]?.sort ?? undefined,
   };
@@ -275,6 +287,19 @@ export function OrdersGrid({ queue, classification }: OrdersGridProps) {
             </MenuItem>
           ))}
         </TextField>
+        {(dateFrom || dateTo) && (
+          <Chip
+            label={`Order date ${dateFrom ?? '…'} → ${dateTo ?? '…'}`}
+            onDelete={() => {
+              setDateFrom(undefined);
+              setDateTo(undefined);
+              setPagination((p) => ({ ...p, page: 0 }));
+            }}
+            color="primary"
+            variant="outlined"
+            sx={{ fontWeight: 600 }}
+          />
+        )}
         <Box sx={{ flexGrow: 1 }} />
         {selectedIds.length > 0 && (
           <>

@@ -1,7 +1,11 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
-  transpilePackages: ['@control-tower/ui-components', '@control-tower/shared-types'],
+  transpilePackages: [
+    '@control-tower/ui-components',
+    '@control-tower/shared-types',
+    '@control-tower/reporting',
+  ],
   eslint: { ignoreDuringBuilds: true },
   async headers() {
     return [

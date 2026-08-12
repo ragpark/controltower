@@ -26,6 +26,8 @@ import {
   useTrend,
 } from '@/lib/queries';
 import { BreakdownBar, ChartCard, SourcePie, TrendChart } from '@/components/charts';
+import { buildRangeMetrics, RangeMetricPills } from '@/components/RangeMetricPills';
+import { summariseTrend } from '@control-tower/reporting';
 
 const QUEUE_LINKS: Partial<Record<Classification, string>> = {
   [Classification.PENDING]: '/queues/pending',
@@ -35,6 +37,20 @@ const QUEUE_LINKS: Partial<Record<Classification, string>> = {
   [Classification.EXCEPTION]: '/queues/exceptions',
 };
 
+/** Window covered by each granularity, kept in one place so the chart query
+ *  and the range caption can never disagree. */
+const RANGE_DAYS: Record<TrendGranularity, number> = {
+  daily: 30,
+  weekly: 90,
+  monthly: 365,
+};
+
+const RANGE_LABEL: Record<TrendGranularity, string> = {
+  daily: 'Last 30 days',
+  weekly: 'Last 90 days',
+  monthly: 'Last 12 months',
+};
+
 export default function DashboardPage() {
   const router = useRouter();
   const [granularity, setGranularity] = useState<TrendGranularity>('daily');
@@ -42,8 +58,26 @@ export default function DashboardPage() {
   const { data: byStatus } = useBreakdown('by-status');
   const { data: byProduct } = useBreakdown('by-product');
   const { data: bySource } = useBreakdown('by-source');
-  const { data: trend } = useTrend(granularity, granularity === 'daily' ? 30 : granularity === 'weekly' ? 90 : 365);
+  const {
+    data: trend,
+    isPending: trendPending,
+    isError: trendError,
+  } = useTrend(granularity, RANGE_DAYS[granularity]);
   const { data: health } = useOperationalHealth();
+
+  // Derived from the buckets the chart is rendering, so the pills and the bars
+  // can never tell different stories.
+  const rangeSummary = summariseTrend(trend ?? []);
+  const rangeMetrics = buildRangeMetrics(rangeSummary.total, rangeSummary.byClassification);
+
+  // The window actually queried, not the first/last bucket — a monthly bucket
+  // starts on the 1st, so bucket bounds would understate the current month.
+  const windowFrom = new Date(Date.now() - RANGE_DAYS[granularity] * 86_400_000)
+    .toISOString()
+    .slice(0, 10);
+  const windowTo = new Date().toISOString().slice(0, 10);
+  const rangeCaption = `${RANGE_LABEL[granularity]} · ${windowFrom} to ${windowTo}`;
+  const trendState = trendPending ? 'loading' : trendError ? 'error' : 'ready';
 
   const cards: Array<{ label: string; value: number; classification?: Classification }> = [
     { label: 'Total orders', value: summary?.total ?? 0 },
@@ -81,21 +115,32 @@ export default function DashboardPage() {
 
       <Grid container spacing={2} sx={{ mb: 3 }}>
         <Grid size={{ xs: 12, lg: 8 }}>
-          <ChartCard
-            title="Order trend"
-            height={300}
-          >
+          <ChartCard title="Order trend" height={392}>
             <Tabs
               value={granularity}
               onChange={(_e, v) => setGranularity(v)}
-              sx={{ minHeight: 32, mb: 1, '& .MuiTab-root': { minHeight: 32, py: 0 } }}
+              sx={{ minHeight: 32, '& .MuiTab-root': { minHeight: 32, py: 0 } }}
             >
               <Tab value="daily" label="Daily" />
               <Tab value="weekly" label="Weekly" />
               <Tab value="monthly" label="Monthly" />
             </Tabs>
+            <Box sx={{ my: 1.5 }}>
+              <RangeMetricPills
+                metrics={rangeMetrics}
+                caption={rangeCaption}
+                state={trendState}
+                onSelect={(metric) => {
+                  const href =
+                    metric.classification && QUEUE_LINKS[metric.classification];
+                  // Carry the window through, or the queue would list all
+                  // history and contradict the figure that was clicked.
+                  if (href) router.push(`${href}?dateFrom=${windowFrom}&dateTo=${windowTo}`);
+                }}
+              />
+            </Box>
             <Box sx={{ height: 240 }}>
-              <TrendChart data={trend ?? []} />
+              <TrendChart data={trend ?? []} granularity={granularity} />
             </Box>
           </ChartCard>
         </Grid>
