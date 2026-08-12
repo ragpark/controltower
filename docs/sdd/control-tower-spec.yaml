@@ -16,8 +16,7 @@ schema_metadata:
   schema_version: 2.0.0
   status: enterprise_draft_for_human_review
   description: >-
-    Machine-readable Pearson SDD specification for the Order Control Tower,
-    generated retrospectively from the delivered implementation so that it can
+    Machine-readable Pearson SDD specification for the Order Control Tower, so that it can
     drive future iterations of the platform.
 
 specification:
@@ -34,8 +33,7 @@ specification:
     delivery_context: >-
       New internal platform replacing a manually maintained Excel dashboard for
       order lifecycle visibility across the ActiveHub order-to-provision journey.
-      Software was delivered before this specification existed; this record is a
-      retrofit.
+      Software was delivered before this specification existed; 
     accountable_owner: null
     created_by: mysites@cluepony.com
     created_at: '2026-08-12'
