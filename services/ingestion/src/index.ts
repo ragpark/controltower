@@ -3,6 +3,7 @@ export * from './csv-parser';
 export * from './failure-report-parser';
 export * from './normalizer';
 export * from './dedup';
+export * from './duplicate-resolution';
 export * from './connectors/connector';
 export * from './connectors/connector-registry';
 export * from './connectors/csv-file.connector';

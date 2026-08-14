@@ -25,6 +25,7 @@ import ExceptionIcon from '@mui/icons-material/ErrorOutlineOutlined';
 import OrdersIcon from '@mui/icons-material/ListAltOutlined';
 import ImportsIcon from '@mui/icons-material/CloudUploadOutlined';
 import FailuresIcon from '@mui/icons-material/BuildCircleOutlined';
+import DuplicatesIcon from '@mui/icons-material/ContentCopyOutlined';
 import SourcesIcon from '@mui/icons-material/HubOutlined';
 import RulesIcon from '@mui/icons-material/RuleOutlined';
 import MenuIcon from '@mui/icons-material/Menu';
@@ -51,6 +52,7 @@ const NAV = [
     section: 'Operations',
     items: [
       { href: '/failures', label: 'Provisioning Failures', icon: <FailuresIcon /> },
+      { href: '/duplicates', label: 'Duplicate Orders', icon: <DuplicatesIcon /> },
       { href: '/imports', label: 'Import History', icon: <ImportsIcon /> },
     ],
   },

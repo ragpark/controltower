@@ -7,6 +7,8 @@ import {
   ClassificationRuleDto,
   ConnectionTestResult,
   DashboardSummary,
+  DuplicateReportDto,
+  DuplicateResolutionResultDto,
   FailureBreakdownItem,
   ProvisioningFailureDto,
   ImportRunDto,
@@ -22,6 +24,26 @@ import {
   TrendGranularity,
 } from '@control-tower/shared-types';
 import { api, buildQuery } from './api-client';
+
+// ── Duplicates (FR-21 / ENG-1104) ───────────────────────────────────────
+export const useDuplicateReport = () =>
+  useQuery<DuplicateReportDto>({
+    queryKey: ['duplicates'],
+    queryFn: () => api.get('/api/v1/duplicates'),
+  });
+
+export const useResolveDuplicates = () => {
+  const qc = useQueryClient();
+  return useMutation<DuplicateResolutionResultDto, Error, string[]>({
+    mutationFn: (keys) => api.post('/api/v1/duplicates/resolve', { keys }),
+    onSuccess: () => {
+      // Removing rows changes counts everywhere, not just this page.
+      qc.invalidateQueries({ queryKey: ['duplicates'] });
+      qc.invalidateQueries({ queryKey: ['orders'] });
+      qc.invalidateQueries({ queryKey: ['dashboard'] });
+    },
+  });
+};
 
 // ── Dashboard ───────────────────────────────────────────────────────────
 export const useDashboardSummary = () =>
