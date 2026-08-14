@@ -110,6 +110,56 @@ describe('FailuresService.syncOrderSummaries', () => {
     lastSeenAt: EARLIER,
   };
 
+  // DEF-02 regression. Order numbers can be stored in different letter cases
+  // (DEF-01). An exact-match join links nothing, and the full-resync branch
+  // then clears a summary the order should still carry.
+  it('links a failure to an order whose number differs only by case', async () => {
+    const { service, update } = syncService(
+      [{ ...failure, orderNumber: 'ORD-1' }],
+      [
+        { id: 'o1', orderNumber: 'ord-1', provisioningCategory: null, provisioningOwner: null, provisioningFailedAt: null },
+      ],
+    );
+
+    const result = await service.syncOrderSummaries();
+    expect(result.linkedOrders).toBe(1);
+    expect(result.unmatchedOrderNumbers).toEqual([]);
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(update.mock.calls[0][0].data).toMatchObject({
+      provisioningCategory: FailureCategory.TEP_ACCOUNT_MISSING,
+      provisioningOwner: 'Customer Data',
+    });
+  });
+
+  it('does not clear a summary from a survivor whose case differs from the failure', async () => {
+    // The exact scenario ENG-1104 creates: the row the failure matched exactly
+    // has been removed, and the survivor spells the order number differently.
+    const { service, update } = syncService(
+      [{ ...failure, orderNumber: 'ORD-1' }],
+      [
+        {
+          id: 'survivor',
+          orderNumber: 'ord-1',
+          provisioningCategory: FailureCategory.TEP_ACCOUNT_MISSING,
+          provisioningOwner: 'Customer Data',
+          provisioningFailedAt: EARLIER,
+        },
+      ],
+    );
+
+    const result = await service.syncOrderSummaries();
+    expect(result.linkedOrders).toBe(1);
+    // Already correct, so nothing is written — and crucially not cleared.
+    expect(update).not.toHaveBeenCalled();
+    expect(result.changedOrderIds).toEqual([]);
+  });
+
+  it('reports an unmatched order number as the failure spells it', async () => {
+    const { service } = syncService([{ ...failure, orderNumber: 'ORD-9' }], []);
+    const result = await service.syncOrderSummaries();
+    expect(result.unmatchedOrderNumbers).toEqual(['ORD-9']);
+  });
+
   it('writes the summary onto every matching order line', async () => {
     const { service, update } = syncService(
       [failure],

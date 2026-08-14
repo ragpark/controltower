@@ -21,6 +21,7 @@ import {
 } from '@mui/material';
 import { ConfirmDialog, EmptyState, PageHeader, StatusChip } from '@control-tower/ui-components';
 import { Classification } from '@control-tower/shared-types';
+import { api } from '../../lib/api-client';
 import { useDuplicateReport, useResolveDuplicates } from '../../lib/queries';
 
 const formatDate = (iso: string) =>
@@ -31,6 +32,28 @@ export default function DuplicatesPage() {
   const resolve = useResolveDuplicates();
   const [selected, setSelected] = useState<string[]>([]);
   const [confirming, setConfirming] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+
+  // Identifiers and provenance only — the endpoint never selects customer name
+  // or email, so the file cannot carry them.
+  const exportReport = async () => {
+    setExporting(true);
+    setExportError(null);
+    try {
+      const csv = await api.get<string>('/api/v1/duplicates/export');
+      const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'duplicate-orders.csv';
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setExportError(err instanceof Error ? err.message : 'Export failed');
+    } finally {
+      setExporting(false);
+    }
+  };
 
   const groups = data?.groups ?? [];
   const selectedGroups = useMemo(
@@ -93,6 +116,9 @@ export default function DuplicatesPage() {
               {data?.removableCount} {data?.removableCount === 1 ? 'row' : 'rows'} removable
             </Typography>
             <Box flexGrow={1} />
+            <Button variant="outlined" onClick={exportReport} disabled={exporting}>
+              {exporting ? 'Exporting…' : 'Export CSV'}
+            </Button>
             <Button
               variant="contained"
               color="error"
@@ -104,6 +130,11 @@ export default function DuplicatesPage() {
             </Button>
           </Stack>
 
+          {exportError && (
+            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setExportError(null)}>
+              {exportError}
+            </Alert>
+          )}
           {resolve.isError && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {resolve.error instanceof Error ? resolve.error.message : 'Resolution failed'}
@@ -150,6 +181,7 @@ export default function DuplicatesPage() {
                         <TableCell>Classification</TableCell>
                         <TableCell>Imported</TableCell>
                         <TableCell>Source file</TableCell>
+                        <TableCell>Import run</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -173,6 +205,13 @@ export default function DuplicatesPage() {
                           </TableCell>
                           <TableCell>{formatDate(v.importedAt)}</TableCell>
                           <TableCell>{v.sourceFile ?? '—'}</TableCell>
+                          <TableCell>
+                            {v.importRunId ? (
+                              <code title={v.importRunId}>{v.importRunId.slice(0, 8)}</code>
+                            ) : (
+                              '—'
+                            )}
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>

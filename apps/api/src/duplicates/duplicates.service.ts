@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { AuditAction } from '@control-tower/shared-types';
 import { planDuplicateResolution, supersededCount } from '@control-tower/ingestion';
@@ -108,6 +108,53 @@ export class DuplicatesService {
   }
 
   /**
+   * CSV of the duplicate report (FR-21).
+   *
+   * The report is built from identifiers, timestamps and provenance only —
+   * customer_name and customer_email are not in CANDIDATE_SELECT and so cannot
+   * reach the file. That is the acceptance criterion, and it is enforced by
+   * what the query selects rather than by filtering afterwards.
+   */
+  async exportCsv(): Promise<string> {
+    const report = await this.report();
+    const header = [
+      'group_key',
+      'order_number',
+      'product_code',
+      'disposition',
+      'classification',
+      'order_status',
+      'imported_at',
+      'source_file',
+      'import_run_id',
+      'order_id',
+    ];
+    const escape = (value: string | null) => {
+      const v = value ?? '';
+      return /[",\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v;
+    };
+    const rows = report.groups.flatMap((group) =>
+      group.variants.map((v) =>
+        [
+          group.key,
+          v.orderNumber,
+          v.productCode,
+          v.survivor ? 'keep' : 'remove',
+          v.classification,
+          v.orderStatus,
+          v.importedAt,
+          v.sourceFile,
+          v.importRunId,
+          v.id,
+        ]
+          .map((c) => escape(c as string | null))
+          .join(','),
+      ),
+    );
+    return [header.join(','), ...rows].join('\n');
+  }
+
+  /**
    * Remove superseded duplicate rows for the named groups (ENG-1104).
    *
    * The survivor is recomputed here rather than taken from the caller: a client
@@ -144,7 +191,37 @@ export class DuplicatesService {
 
       // Each group is its own transaction: one bad group must not roll back
       // groups the operator already had confirmed as resolved.
+      //
+      // Serializable, and the plan is recomputed inside the boundary. The
+      // planning read above is not locked, so a scheduled or concurrent import
+      // can land between it and this write and make a row marked for deletion
+      // the freshest one. Deleting the row we promised to keep is the one
+      // outcome this operation must never produce, so the survivor is
+      // revalidated against the same snapshot that performs the delete.
       const counts = await this.prisma.$transaction(async (tx) => {
+        const current = await tx.order.findMany({
+          where: {
+            orderNumber: { equals: plan.survivor.orderNumber, mode: 'insensitive' },
+            productCode: { equals: plan.survivor.productCode, mode: 'insensitive' },
+          },
+          select: CANDIDATE_SELECT,
+        });
+        const [revalidated] = planDuplicateResolution(current);
+
+        const unchanged =
+          revalidated !== undefined &&
+          revalidated.survivor.id === plan.survivor.id &&
+          revalidated.superseded.length === plan.superseded.length &&
+          revalidated.superseded.every((r) => supersededIds.includes(r.id));
+
+        if (!unchanged) {
+          throw new ConflictException(
+            `Duplicate group "${plan.key}" changed while it was being resolved — ` +
+              'an import has touched these order lines. Nothing was removed for this group. ' +
+              'Reload the report and try again.',
+          );
+        }
+
         const history = await tx.orderHistory.updateMany({
           where: { orderId: { in: supersededIds } },
           data: { orderId: plan.survivor.id },
@@ -168,7 +245,7 @@ export class DuplicatesService {
         await tx.order.deleteMany({ where: { id: { in: supersededIds } } });
 
         return { history: history.count, executions: executions.count, removed: removed.length };
-      });
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
       ordersRemoved += counts.removed;
       historyRowsReattached += counts.history;

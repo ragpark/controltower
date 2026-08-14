@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Header, Post } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ApiUser, Role } from '@control-tower/shared-types';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -22,6 +22,20 @@ export class DuplicatesController {
   })
   report() {
     return this.duplicates.report();
+  }
+
+  @Get('export')
+  @Roles(Role.VIEWER)
+  @Header('Content-Type', 'text/csv')
+  @Header('Content-Disposition', 'attachment; filename="duplicate-orders.csv"')
+  @ApiOperation({
+    summary: 'Export the duplicate report as CSV',
+    description:
+      'Identifiers, provenance and disposition only. Customer name and email are not ' +
+      'selected by the underlying query, so they cannot appear in the file.',
+  })
+  exportCsv() {
+    return this.duplicates.exportCsv();
   }
 
   @Post('resolve')

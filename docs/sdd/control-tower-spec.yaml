@@ -2063,6 +2063,30 @@ specification:
           not be treated as a routine fix.
         regression_test_required: true
         tasks: [ENG-1101, ENG-1104]
+      - id: DEF-02
+        title: Failure-to-order join is case-sensitive
+        raised_by: automated review of PR #14
+        severity: S2
+        status: fixed_in_pr_14
+        root_cause: >-
+          FailuresService.syncOrderSummaries keyed its `desired` map on the raw
+          failure order number and looked orders up with exact equality. Where
+          the same order number is stored in different cases (DEF-01), the join
+          matched nothing.
+        consequence: >-
+          Worse than a missing link. The full-resync branch selects any order
+          carrying a provisioning summary, finds no case-matching failure, and
+          CLEARS the summary — then reclassification moves the order out of
+          Customer Impacted. A customer-impacting order silently stops looking
+          customer-impacting.
+        surfaced_by: >-
+          ENG-1104. Removing the row a failure matched exactly leaves a survivor
+          spelled differently, which is precisely the trigger.
+        fix: >-
+          Normalise both sides of the join. Order lookups use case-insensitive
+          matching; unmatched numbers are still reported as the failure spells
+          them.
+        regression_tests: [failures.service.spec — three DEF-02 cases]
 
     # Added by SD-02. Test ids continue the OCT-001 sequence, which ends at TC-18.
     owner_directory_verification:
@@ -2440,7 +2464,26 @@ specification:
         named group and removes the rest. Operations gains a Duplicate Orders
         page. Domain logic is in services/ingestion/duplicate-resolution.ts and
         carries no framework dependency.
-      tests_added: 21   # 10 domain, 11 API
+      tests_added: 30   # 10 domain, 20 API
+      review_findings_addressed:
+        - >-
+          P1 — the survivor was planned outside the deletion transaction, so a
+          concurrent or scheduled import could make a row marked for deletion
+          the freshest one. The plan is now recomputed inside a serializable
+          transaction and the group aborts with 409 if it changed. Deleting the
+          row we promised to keep is the one outcome this must never produce.
+        - >-
+          P1 — provisioning failures did not re-link to a survivor spelled in a
+          different case, and were actively cleared. Recorded as DEF-02 and
+          fixed.
+        - >-
+          P2 — each variant now shows its import run id, not just the source
+          filename, which FR-21 requires and which matters when filenames repeat.
+        - >-
+          P2 — FR-21's export criterion had no implementation. Added
+          GET /api/v1/duplicates/export and an Export CSV control. The export
+          carries no customer name or email because the underlying query does
+          not select them.
       guardrails_engaged:
         - deduplication_key_changes — the key is unchanged; the survivor rule is new
         - database_migrations_affecting_customer_data — customer order rows are deleted
