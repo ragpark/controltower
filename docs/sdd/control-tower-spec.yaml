@@ -30,13 +30,19 @@ specification:
   metadata:
     spec_id: AHCTL-02
     title: ActiveHub Control Tower
-    version: 1.1.0-draft
+    version: 1.2.0-draft
     status: draft
     pending_ratification:
-      delta: SD-01
-      summary: Spec-operations tooling — see engineering.spec_operations
-      prepared_by: claude-agent
-      awaiting: accountable_owner_ratification
+      - delta: SD-01
+        summary: Spec-operations tooling — see engineering.spec_operations
+        prepared_by: claude-agent
+        awaiting: accountable_owner_ratification
+      - delta: SD-02
+        summary: Team owner directory — FR-20, ADR-18, ENG-1001…1006
+        prepared_by: claude-agent
+        awaiting: accountable_owner_ratification
+        depends_on: SD-01
+        human_sign_off_required: retention_or_pii_handling_changes
     classification: internal
     business_unit: null
     product_area: ActiveHub
@@ -227,9 +233,13 @@ specification:
         - customer_email
         - customer_identifier
         - order_and_licence_transaction_detail
+        # Added by SD-02 (FR-20). A NEW category of personal data, deliberately
+        # entered into a system whose privacy review has not started (BLK-02).
+        - internal_staff_work_email
       direct_identifiers:
         - orders.customer_name
         - orders.customer_email
+        - team_owners.email   # SD-02
       indirect_identifiers:
         - orders.customer_id
         - orders.order_number
@@ -243,6 +253,32 @@ specification:
       purpose_limitation_summary: >-
         Operational triage of order and provisioning exceptions only. No
         marketing, profiling, model training or commercial decisioning.
+      # Added by SD-02
+      sd_02_delta:
+        change: >-
+          FR-20 introduces a directory of internal staff work email addresses.
+          These are a new personal data category and a new data subject
+          relationship — Pearson staff as contactable owners rather than as
+          platform users.
+        lawful_basis_position: >-
+          Likely legitimate interests for internal operational contact, but
+          undetermined; the platform has no lawful basis determination at all
+          (BLK-02, OQ-03).
+        minimisation_position: >-
+          A shared team mailbox address satisfies the stated outcome and avoids
+          holding named individuals' addresses. Recommended over personal
+          addresses; recorded as OQ-A2-06.
+        retention_position: undetermined — feeds BLK-10
+        risk_added:
+          id: PR-06
+          description: >-
+            A directory of internal staff email addresses on a production
+            surface that is currently public and unauthenticated.
+          severity: critical
+          depends_on: BLK-01
+          control: FR-20 deployment_gate — must not reach production while BLK-01 is open
+        sign_off_required: retention_or_pii_handling_changes
+        sign_off_status: not_obtained
     children_data:
       present: false
       enhanced_review_required: false
@@ -429,6 +465,63 @@ specification:
     delivered_but_disabled: 1   # FR-17
     delivered_but_not_exercised: 1  # FR-19
 
+    # -----------------------------------------------------------------------
+    # Requirements defined natively in AHCTL-02 (not inherited).
+    # -----------------------------------------------------------------------
+    new_in_ahctl_02:
+      - id: FR-20
+        title: Team owner directory
+        delta: SD-02
+        status: proposed_awaiting_ratification
+        description: >-
+          An admin-only Settings page holding the teams that own provisioning
+          failures — a stable code, a display name and a contact email address
+          — so an operator can see who owns a failure and reach them without
+          leaving the platform or looking the address up elsewhere.
+        priority: should
+        rationale: >-
+          Ownership routing already exists (ADR-08, FR-12, FR-13) but resolves
+          only to a free-text team name. The operator still has to find the
+          address somewhere else, which is where the delay and the wrong-team
+          hand-offs happen.
+        personas: [P-01, P-03, P-04]
+        introduces_personal_data: true
+        personal_data_categories: [internal_staff_work_email]
+        deployment_gate:
+          blocked_by: BLK-01
+          reason: >-
+            Publishing a directory of internal staff email addresses onto a
+            production surface that is currently public and unauthenticated
+            widens exposure. Engages the guardrail
+            widen_exposure_or_add_multi_tenancy_until_blk_01_closes. The
+            feature may be built and merged; it must not reach production
+            while BLK-01 is open.
+        human_sign_off_required: retention_or_pii_handling_changes
+        acceptance_criteria:
+          - Given I am an admin, when I open Settings, then a Team Owners page lists every team with its code, display name and contact email.
+          - Given I am an operator or viewer, when I attempt to open or call the Team Owners administration endpoints, then the request is rejected with 403 — consistent with the other Settings pages, which are admin-only.
+          - Given I add or edit a team, when I save, then the change is persisted and an audit record is written with actor, before and after.
+          - Given I enter a malformed email address, when I save, then the save is rejected with an actionable message quoting the value I entered.
+          - Given a team is referenced by at least one provisioning failure, when I attempt to delete it, then deletion is refused and I am offered deactivation instead — history must not lose its owner.
+          - Given a failure was stamped with an owner at import time, when that team's email address is later changed, then the failure's recorded owner is unchanged and only the resolved contact detail differs — ADR-08 immutability is preserved.
+          - Given a failure is displayed, when its owning team exists in the directory, then the contact address is shown and offered as a mail link; when it does not, then the failure still displays with an unresolved-owner indicator rather than an error.
+          - Given I reassign a failure, when I choose the new owner, then I choose from the directory rather than typing free text.
+          - Given any log line, metric label, event payload or error report, when a team email address is in scope, then the address does not appear in it.
+        dependencies: [FR-12, FR-13, ADR-08, ADR-18]
+        amends:
+          - id: FR-13
+            change: >-
+              Reassignment selects from the directory instead of accepting a
+              free-text owner string.
+            status: BLOCKED_BY_BLK-18
+            note: >-
+              FR-13's definition is not present in this YAML — it was condensed
+              out and survives only in the delivery pack. The amendment cannot
+              be drafted against the record until ENG-900 restores it. This is
+              BLK-18 having a direct delivery consequence, not a theoretical one.
+        traceability: [G-05, UX-J06, ADR-18, ENG-1001, ENG-1002, ENG-1003, ENG-1004, ENG-1005, ENG-1006]
+        open_questions: [OQ-A2-05, OQ-A2-06]
+
   ux_and_accessibility:
     design_system: MUI v6 with MUI X DataGrid; local component library in packages/ui-components
     brand_alignment: >-
@@ -440,6 +533,21 @@ specification:
       - { id: UX-J03, name: Daily failure report upload,        persona: P-01 }
       - { id: UX-J04, name: Change a classification rule,       persona: P-04 }
       - { id: UX-J05, name: Onboard a new data source,          persona: P-04 }
+      # Added by SD-02
+      - id: UX-J06
+        name: Maintain the team owner directory and reach an owner
+        persona: P-04 (maintain) / P-01 (reach)
+        delta: SD-02
+        steps:
+          - Admin opens Settings, Team Owners
+          - Adds or edits a team code, display name and contact email
+          - Operator opens the Provisioning Failures queue
+          - Sees the owning team with its contact address resolved
+          - Reassigns by choosing a team from the directory, not by typing a name
+        states_required:
+          empty: no teams configured yet — the queue still lists failures, with an unresolved-owner indicator
+          error: directory unavailable — the queue degrades to showing the stamped owner name only
+          loading: address resolution must not block the queue rendering
     accessibility:
       target_standard: WCAG 2.2 AA
       eaa_alignment_required: true
@@ -495,6 +603,25 @@ specification:
           consequences:
             - A failing spec-validation job blocks merge.
             - Branch protection on main is a prerequisite and is an owner action.
+        - id: ADR-18
+          decision: >-
+            The team owner directory holds identity only. The routing decision
+            stays stamped on the provisioning failure at import time, as a
+            stable team code; contact details are resolved for display.
+          status: proposed_awaiting_ratification
+          delta: SD-02
+          extends: ADR-08
+          rationale: >-
+            ADR-08 stores the owner on the failure precisely so that changing
+            the routing table never rewrites history. A directory that the
+            failure joined to at read time would silently undo that: correcting
+            an address would retrospectively alter who past failures appear to
+            have been assigned to. Splitting identity from the stamped decision
+            keeps both properties.
+          consequences:
+            - provisioning_failures gains a nullable team code alongside the existing owner string; the string remains the historical record.
+            - Existing rows are backfilled by matching the six seeded owner names; unmatched rows keep their string and show as unresolved.
+            - Deleting a referenced team is refused; deactivation is offered instead.
     non_functional_requirements:
       api_p95_latency_ms: 500
       api_p95_status: not_load_tested
@@ -515,7 +642,30 @@ specification:
 
   data_and_integration:
     inherited_from: OCT-001
-    personal_data_entities: [orders, order_history, audit_logs, saved_views]
+    personal_data_entities: [orders, order_history, audit_logs, saved_views, team_owners]
+    # Added by SD-02
+    new_entities:
+      - name: team_owners
+        delta: SD-02
+        description: Teams that own provisioning failures, with a contact address
+        fields:
+          - { name: code,         type: string, unique: true, note: 'stable key; what provisioning_failures references' }
+          - { name: display_name, type: string }
+          - { name: email,        type: string, personal_data: true }
+          - { name: active,       type: boolean, default: true, note: deactivation replaces deletion }
+        personal_data: true
+        personal_data_fields: [email]
+        data_subjects: internal_staff_or_shared_team_mailbox
+        source_of_truth: this platform — unlike orders, there is no upstream system
+        retention: undetermined — OQ-A2-06, feeds BLK-10
+        seeded_from: >-
+          packages/shared-types/src/failure.ts FAILURE_ROUTING — the six existing
+          owner strings (Customer Data, ActiveHub Support, Order Management,
+          Platform Engineering, Triage), with addresses left blank until supplied
+        referential_rule: >-
+          provisioning_failures.owner remains the stamped historical string per
+          ADR-08; a nullable team code is added alongside it. Deleting a
+          referenced team is refused.
     data_flows: [DF-01_order_import, DF-02_failure_report_import]
     idempotency:
       ingestion: idempotent by natural key (order_number, product_code)
@@ -614,6 +764,14 @@ specification:
         - ENG-904_spec_change_intake_skill
         - ENG-905_branch_protection_on_main
         - ENG-906_register_claude_md_retroactively
+      # Added by SD-02 — FR-20 team owner directory
+      p10_owner_directory:
+        - ENG-1001_team_owners_schema_and_migration
+        - ENG-1002_team_owners_api_admin_only
+        - ENG-1003_team_owners_settings_page
+        - ENG-1004_reassign_from_directory
+        - ENG-1005_seed_and_backfill_from_failure_routing
+        - ENG-1006_pii_controls_for_owner_email
     build_invariants:
       - { id: BI-01, invariant: 'apps/api/tsconfig.build.json keeps rootDir "src" and excludes prisma' }
       - { id: BI-02, invariant: 'Dockerfile `test -f` entrypoint guards retained' }
@@ -654,6 +812,59 @@ specification:
           - record an exceptions_and_waivers entry naming what was skipped and why, same working day
           - add a contribution_log entry
         currently_applicable_to: [BLK-01]
+
+    # -----------------------------------------------------------------------
+    # SD-02 task detail — FR-20 team owner directory.
+    # -----------------------------------------------------------------------
+    owner_directory:
+      requirement: FR-20
+      goal: G-05
+      adr: ADR-18
+      human_sign_off_required: retention_or_pii_handling_changes
+      sign_off_status: not_obtained
+      deployment_gate: BLK-01
+      tasks:
+        - id: ENG-1001
+          title: team_owners schema and migration
+          acceptance_criteria:
+            - Given the migration runs, when it completes, then team_owners exists with a unique code, display name, email and active flag.
+            - Given the migration runs, when it completes, then provisioning_failures has a nullable team code and its existing owner string is untouched.
+            - Given the migration is reviewed, when it is read, then it neither drops nor renames any customer-data column.
+        - id: ENG-1002
+          title: Team owners API, admin only
+          acceptance_criteria:
+            - Given the endpoints exist, when they are decorated, then read and write are @Roles(Role.ADMIN), matching sources and rules.
+            - Given a malformed email, when it is submitted, then validation rejects it and the message quotes the offending value.
+            - Given any create, update or deactivate, when it succeeds, then an audit record is written with actor, before and after.
+            - Given a team referenced by a provisioning failure, when deletion is attempted, then it is refused with an actionable message offering deactivation.
+        - id: ENG-1003
+          title: Team Owners settings page
+          acceptance_criteria:
+            - Given an admin, when they open Settings, then Team Owners appears alongside Data Sources and Classification Rules.
+            - Given the page, when it is operated by keyboard only, then every control is reachable and the form is labelled.
+            - Given no teams exist, when the page loads, then an empty state explains what to add rather than showing a blank table.
+        - id: ENG-1004
+          title: Reassign from the directory
+          depends_on: [ENG-1001, ENG-1002]
+          blocked_by: BLK-18
+          blocked_reason: >-
+            Amends FR-13, whose definition is not in the record. Restore it via
+            ENG-900 before drafting the amendment.
+          acceptance_criteria:
+            - Given the reassign action, when the owner is chosen, then it is selected from the directory rather than typed as free text.
+            - Given a failure reassigned to a team, when its history is read, then the previously stamped owner is unchanged.
+        - id: ENG-1005
+          title: Seed and backfill from FAILURE_ROUTING
+          acceptance_criteria:
+            - Given the seed runs, when it completes, then the five distinct owner teams in FAILURE_ROUTING exist as rows with blank addresses.
+            - Given existing provisioning failures, when the backfill runs, then rows whose owner string matches a seeded display name gain the corresponding team code.
+            - Given an owner string that matches nothing, when the backfill runs, then the row is left with its string and surfaces as unresolved rather than being guessed.
+            - Given the seed runs twice, when it completes, then no duplicate teams exist — it is idempotent, consistent with the existing seed.
+        - id: ENG-1006
+          title: PII controls for owner email
+          acceptance_criteria:
+            - Given a team email address, when any code path logs, emits a metric, publishes an event or reports an error, then the address does not appear.
+            - Given the retention schedule work (ENG-713), when it is specified, then team_owners is included as a data category.
 
     # -----------------------------------------------------------------------
     # SD-01 task detail. Acceptance criteria are the ratification surface:
@@ -768,6 +979,16 @@ specification:
       - { task: ENG-904, verified_by: 'skill run against a guardrail-colliding request stops instead of drafting' }
       - { task: ENG-905, verified_by: 'direct push to main is rejected; unreviewed merge is blocked' }
       - { task: ENG-906, verified_by: 'CLAUDE.md and agent_manifest.guardrails compared for agreement' }
+    # Added by SD-02. Test ids continue the OCT-001 sequence, which ends at TC-18.
+    owner_directory_verification:
+      - { id: TC-19, requirement: FR-20, case: 'operator and viewer receive 403 from the team owners administration endpoints' }
+      - { id: TC-20, requirement: FR-20, case: 'malformed email is rejected and the message quotes the offending value' }
+      - { id: TC-21, requirement: FR-20, case: 'deleting a referenced team is refused and deactivation is offered' }
+      - { id: TC-22, requirement: FR-20, case: 'changing a team email leaves the stamped owner on existing failures unchanged (ADR-18)' }
+      - { id: TC-23, requirement: FR-20, case: 'backfill leaves an unmatched owner string unresolved rather than guessing' }
+      - { id: TC-24, requirement: FR-20, case: 'seed is idempotent — running twice creates no duplicate teams' }
+      - { id: TC-25, requirement: FR-20, case: 'team email appears in no log line, metric label, event payload or error report' }
+      - { id: TC-26, requirement: FR-20, case: 'queue renders with an unresolved-owner indicator when the directory has no matching team' }
     acceptance_recommendation:
       status: not_recommended_for_certification
       rationale: >-
@@ -900,6 +1121,8 @@ specification:
       - { goal: G-03, requirements: [FR-10],               ux: [UX-J04],         architecture: [ADR-02], engineering: [PR3], tests: [TC-18], release_control: admin_role_not_enforced_while_blk_01 }
       - { goal: G-04, requirements: [FR-08, FR-09, FR-19], ux: [UX-J03, UX-J05], architecture: [ADR-03], engineering: [PR2], tests: [TC-01, TC-02, TC-03, TC-16], release_control: admin_role_not_enforced_while_blk_01 }
       - { goal: G-05, requirements: [FR-11, FR-12, FR-13], ux: [UX-J03],         architecture: [ADR-06, ADR-07, ADR-08], engineering: [PR5], tests: [TC-08, TC-09, TC-10, TC-11, TC-12, TC-13], release_control: sm_02_not_instrumented }
+      # Added by SD-02
+      - { goal: G-05, requirements: [FR-20], ux: [UX-J06], architecture: [ADR-18], engineering: [ENG-1001, ENG-1002, ENG-1003, ENG-1004, ENG-1005, ENG-1006], tests: [owner_directory_verification], release_control: '🔴 deployment gated on BLK-01; human sign-off required on retention_or_pii_handling_changes' }
       - { goal: G-06, requirements: [FR-17, FR-18],        ux: [],               architecture: [ADR-10], engineering: [ENG-701, ENG-704], tests: [TC-17], release_control: '🔴 NOT ENFORCED IN PRODUCTION' }
       # Added by SD-01. Verification is the validator and the generator rather
       # than application test cases; see qa_and_verification.spec_operations_verification.
@@ -967,6 +1190,31 @@ specification:
       note: >-
         Prepared by an AI agent under ai_may_prepare. No review gate has been
         marked passed, no blocker closed and no ADR ratified by this entry.
+    - timestamp: '2026-08-12'
+      contributor: claude-agent
+      role: ai_agent
+      action: spec_delta_prepared
+      delta_id: SD-02
+      requested_by: accountable_owner
+      sections: [metadata, polaris_data_privacy_review, functional_requirements, ux_and_accessibility, architecture, data_and_integration, engineering, qa_and_verification, traceability, open_questions]
+      summary: >-
+        Team owner directory. Adds FR-20 (admin-only Settings page holding team
+        code, display name and contact email), ADR-18 (directory holds identity;
+        the routing decision stays stamped on the failure per ADR-08), the
+        team_owners entity, UX-J06, tasks ENG-1001…1006 and TC-19…TC-26.
+        Records a new personal data category — internal staff work email — and
+        the privacy risk PR-06 that follows from adding it to a surface that is
+        currently public and unauthenticated.
+      depends_on: SD-01
+      prepared_not_approved: true
+      human_review_required: true
+      human_sign_off_required: retention_or_pii_handling_changes
+      ratification_required_from: accountable_owner
+      note: >-
+        Prepared by an AI agent under ai_may_prepare. Introduces personal data
+        into a platform whose POLARIS review has not started (BLK-02) and whose
+        production surface is unauthenticated (BLK-01). FR-20 carries a
+        deployment gate on BLK-01 for that reason.
 
   open_questions:
     - { id: OQ-01,    question: 'Who is accountable for this platform in production?',                                              blocks: [BLK-07] }
@@ -982,6 +1230,31 @@ specification:
     - { id: OQ-A2-02, question: 'Does mysites@cluepony.com endorse the inheritance and supersession?',                               blocks: [BLK-A2-02, BLK-A2-05] }
     - { id: OQ-A2-03, question: 'Is ragpark/controltower the intended long-term repository, or should this migrate to Pearson-owned?' }
     - { id: OQ-A2-04, question: 'Is AHCTL-02 the specification of record for the running software or for a proposed migration?' }
+    # Added by SD-02
+    - id: OQ-A2-05
+      question: >-
+        Does "assign without leaving the platform" mean the platform should
+        SEND email to the owning team, or only hold the address and offer a
+        mail link?
+      raised_by: SD-02
+      blocks: ['FR-20 scope']
+      recommendation: >-
+        Address plus mail link for this delta. Server-side sending is a
+        materially larger change: a new outbound integration, a new processor,
+        a new failure mode, and a message body that would carry customer order
+        detail — which makes it a POLARIS question, not a UI one. Recorded so
+        the smaller version is not mistaken for the whole intent.
+      status: open
+    - id: OQ-A2-06
+      question: >-
+        Should team_owners hold shared team mailboxes or named individuals'
+        addresses?
+      raised_by: SD-02
+      blocks: [BLK-10, 'FR-20 minimisation position']
+      recommendation: >-
+        Shared mailboxes. They satisfy the outcome, avoid holding individuals'
+        personal data, and do not go stale when someone changes role.
+      status: open
 
   exceptions_and_waivers:
     - { id: EXC-01, exception: 'No feature flags for user-visible change',                     guardrail: use_feature_flags_for_user_visible_changes, status: candidate_not_approved, inherited_from: OCT-001 }
