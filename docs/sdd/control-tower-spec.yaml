@@ -124,15 +124,32 @@ specification:
       submitted_version: null
     versioning:
       major_version: 1
-      minor_version: 1
+      minor_version: 3
       patch_version: 1
       version_history_required: true
       change_summary: >-
-        ENG-900 implementation of ratified delta SD-01. Restores the FR, ADR,
-        TC, UX journey, component, API, event, data-entity and persona
-        definitions that had been condensed out of AHCTL-02, making the record
-        self-contained. No requirement is added or changed.
+        Record repair. Restores the SD-02 content dropped by the PR #12 merge
+        resolution (UX-J06, the team_owners entity, team_owners in
+        personal_data_entities, and the SD-02 / SD-03 ratification records),
+        and brings the FR and ADR statuses into step with the ratifications.
+        No requirement is added or changed.
       previous_versions:
+        - version: 1.3.0-draft
+          summary: >-
+            SD-03 spec delta: duplicate order diagnostics (DEF-01, FR-21) and
+            Top Products scoped to Completed (FR-22); ENG-1101…1104,
+            TC-27…TC-33. Ratified by the accountable owner; PR #11 merged.
+        - version: 1.2.0-draft
+          summary: >-
+            SD-02 spec delta: team owner directory (FR-20, ADR-18, UX-J06,
+            team_owners), ENG-1001…1006, TC-19…TC-26. Ratified by the
+            accountable owner; PR #10 merged.
+        - version: 1.1.1-draft
+          summary: >-
+            ENG-900 implementation of ratified delta SD-01. Restored the FR,
+            ADR, TC, UX journey, component, API, event, data-entity and persona
+            definitions that had been condensed out of AHCTL-02, making the
+            record self-contained. PR #12 merged.
         - version: 1.1.0-draft
           summary: >-
             SD-01 spec delta: spec-operations tooling (G-07, ADR-16, ADR-17,
@@ -855,7 +872,8 @@ specification:
       - id: FR-20
         title: Team owner directory
         delta: SD-02
-        status: proposed_awaiting_ratification
+        status: ratified
+        ratified_by_delta: SD-02   # PR #10 merged 2026-08-14
         description: >-
           An admin-only Settings page holding the teams that own provisioning
           failures — a stable code, a display name and a contact email address
@@ -908,7 +926,8 @@ specification:
       - id: FR-21
         title: Duplicate order diagnostics
         delta: SD-03
-        status: proposed_awaiting_ratification
+        status: ratified
+        ratified_by_delta: SD-03   # PR #11 merged 2026-08-14
         description: >-
           A read-only Operations view listing suspected duplicate order lines,
           grouped by the case-insensitive natural key, showing each stored
@@ -938,7 +957,8 @@ specification:
       - id: FR-22
         title: Top Products counts completed orders only
         delta: SD-03
-        status: proposed_awaiting_ratification
+        status: ratified
+        ratified_by_delta: SD-03   # PR #11 merged 2026-08-14
         description: >-
           The Top Products chart on the dashboard counts only orders classified
           COMPLETED. Pending, Placed, Customer Impacted, Exception,
@@ -1317,7 +1337,7 @@ specification:
           decision: >-
             The YAML is the normative specification record. The Markdown
             delivery pack is generated from it and is never hand-edited.
-          status: proposed_awaiting_ratification
+          status: ratified_awaiting_implementation   # SD-01, PR #9 merged 2026-08-12
           rationale: >-
             Two hand-maintained representations of one record always diverge.
             Today the pack holds FR, ADR, TC and UX detail that the YAML does
@@ -1331,7 +1351,7 @@ specification:
           decision: >-
             Specification compliance is enforced mechanically in CI and in
             branch protection, not by convention or by agent instruction.
-          status: proposed_awaiting_ratification
+          status: ratified_awaiting_implementation   # SD-01, PR #9 merged 2026-08-12
           rationale: >-
             CLAUDE.md binds Claude sessions only. It does not bind a different
             tool, a different agent, or a human in a hurry. The reconciliation
@@ -1345,7 +1365,7 @@ specification:
             The team owner directory holds identity only. The routing decision
             stays stamped on the provisioning failure at import time, as a
             stable team code; contact details are resolved for display.
-          status: proposed_awaiting_ratification
+          status: ratified_awaiting_implementation   # SD-02, PR #10 merged 2026-08-14
           delta: SD-02
           extends: ADR-08
           rationale: >-
@@ -1396,9 +1416,13 @@ specification:
         source_of_truth: this platform — unlike orders, there is no upstream system
         retention: undetermined — OQ-A2-06, feeds BLK-10
         seeded_from: >-
-          packages/shared-types/src/failure.ts FAILURE_ROUTING — the six existing
-          owner strings (Customer Data, ActiveHub Support, Order Management,
-          Platform Engineering, Triage), with addresses left blank until supplied
+          packages/shared-types/src/failure.ts FAILURE_ROUTING — the FIVE
+          distinct owner strings (Customer Data, ActiveHub Support, Order
+          Management, Platform Engineering, Triage) across its six categories,
+          since TEP_ACCOUNT_MISSING and INVALID_CUSTOMER_DATA both route to
+          Customer Data. Five rows, matching ENG-1005's acceptance criterion;
+          team_owners.code is unique, so six would be wrong. Addresses are left
+          blank until supplied.
         referential_rule: >-
           provisioning_failures.owner remains the stamped historical string per
           ADR-08; a nullable team code is added alongside it. Deleting a
