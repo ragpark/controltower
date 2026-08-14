@@ -14,6 +14,7 @@ import { RequestLoggerMiddleware } from './observability/request-logger.middlewa
 import { SourcesModule } from './sources/sources.module';
 import { ImportsModule } from './imports/imports.module';
 import { RulesModule } from './rules/rules.module';
+import { DuplicatesModule } from './duplicates/duplicates.module';
 import { FailuresModule } from './failures/failures.module';
 import { OrdersModule } from './orders/orders.module';
 import { DashboardModule } from './dashboard/dashboard.module';
@@ -33,6 +34,7 @@ import { HealthModule } from './health/health.module';
     AggregatesModule,
     RulesModule,
     FailuresModule,
+    DuplicatesModule,
     ImportsModule,
     SourcesModule,
     OrdersModule,

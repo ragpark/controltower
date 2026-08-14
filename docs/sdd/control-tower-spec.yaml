@@ -30,7 +30,7 @@ specification:
   metadata:
     spec_id: AHCTL-02
     title: ActiveHub Control Tower
-    version: 1.3.1-draft
+    version: 1.3.2-draft
     status: draft
     ratified:
       - delta: SD-01
@@ -125,15 +125,20 @@ specification:
     versioning:
       major_version: 1
       minor_version: 3
-      patch_version: 1
+      patch_version: 2
       version_history_required: true
       change_summary: >-
-        Record repair. Restores the SD-02 content dropped by the PR #12 merge
-        resolution (UX-J06, the team_owners entity, team_owners in
-        personal_data_entities, and the SD-02 / SD-03 ratification records),
-        and brings the FR and ADR statuses into step with the ratifications.
-        No requirement is added or changed.
+        ENG-1102 and ENG-1104 implementation of ratified delta SD-03: duplicate
+        diagnostics and the removal of superseded duplicate order lines,
+        keeping the most recently imported row. Adds one acceptance criterion
+        to ENG-1104 at the owner's direction and records EXC-06, because
+        ENG-1104's BLK-11 precondition is not met.
       previous_versions:
+        - version: 1.3.1-draft
+          summary: >-
+            Record repair. Restored the SD-02 content dropped by the PR #12
+            merge resolution and brought the FR and ADR statuses into step with
+            the ratifications. PR #13.
         - version: 1.3.0-draft
           summary: >-
             SD-03 spec delta: duplicate order diagnostics (DEF-01, FR-21) and
@@ -928,6 +933,8 @@ specification:
         delta: SD-03
         status: ratified
         ratified_by_delta: SD-03   # PR #11 merged 2026-08-14
+        delivered: true
+        delivered_at: '2026-08-14'
         description: >-
           A read-only Operations view listing suspected duplicate order lines,
           grouped by the case-insensitive natural key, showing each stored
@@ -1724,6 +1731,9 @@ specification:
         - id: ENG-1102
           title: Duplicate diagnostics, read only
           requirement: FR-21
+          status: delivered_awaiting_owner_confirmation
+          delivered_at: '2026-08-14'
+          delivered_as: 'GET /api/v1/duplicates and the Operations > Duplicate Orders page'
           sequence: 1
           rationale: >-
             Runs first. Establishes what is actually duplicated before any
@@ -1758,7 +1768,34 @@ specification:
         - id: ENG-1104
           title: Merge or reconcile existing duplicate rows
           sequence: 3
-          status: gated_not_authorised
+          status: delivered_awaiting_owner_confirmation
+          delivered_at: '2026-08-14'
+          delivered_as: 'POST /api/v1/duplicates/resolve, operator role, per-group confirmation'
+          previous_status: gated_not_authorised
+          authorised_by:
+            who: accountable_owner
+            how: direct instruction in session on 2026-08-14
+            wording: >-
+              "Add the operation as a feature to remove orders which share the
+              same Order and ISBN, but differ by import date. When deciding
+              which to remove, use the import date and retain the most recent."
+            sign_off_recorded: false
+            sign_off_still_required: [deduplication_key_changes, database_migrations_affecting_customer_data]
+            note: >-
+              The owner directed the build. That is the decision to proceed; it
+              is not the same artefact as a recorded sign-off, and this entry
+              does not claim to be one.
+          precondition_not_met:
+            precondition: BLK-11 closed — backup and restore documented and tested
+            status: still_open
+            exception: EXC-06
+            mitigation: >-
+              The implementation does not rely on a database restore to be
+              recoverable. Before a superseded row is deleted, its order_history
+              and rule_executions are re-pointed to the survivor and the row
+              itself is snapshotted into the survivor's history. The order
+              line's past therefore survives inside the application's own data
+              model. The row is still gone and cannot be restored from the UI.
           human_sign_off_required: true
           sign_off_reason: [database_migrations_affecting_customer_data, deduplication_key_changes]
           preconditions:
@@ -1775,6 +1812,10 @@ specification:
             - Given a duplicate group, when it is merged, then order_history retains every superseded variant and an audit record names the operator, the surviving row and each row merged into it.
             - Given a merge, when it completes, then provisioning failure links, rule executions and history rows previously attached to a merged row still resolve.
             - Given a merge, when it is requested, then it is explicitly confirmed by an operator per group — no bulk automatic merge.
+            # Added 2026-08-14 at the owner's direction; amends a ratified task.
+            - Given a group of duplicate rows, when a survivor is chosen, then it is the row with the most recent import date.
+            - Given two rows imported at the same instant, when a survivor is chosen, then the tie is broken deterministically, so a dry run predicts the real run.
+            - Given a caller names a group, when the survivor is chosen, then the server recomputes it rather than accepting a caller-supplied id, so a stale report cannot nominate the wrong row for deletion.
 
     # -----------------------------------------------------------------------
     # SD-02 task detail — FR-20 team owner directory.
@@ -2022,6 +2063,30 @@ specification:
           not be treated as a routine fix.
         regression_test_required: true
         tasks: [ENG-1101, ENG-1104]
+      - id: DEF-02
+        title: Failure-to-order join is case-sensitive
+        raised_by: automated review of PR #14
+        severity: S2
+        status: fixed_in_pr_14
+        root_cause: >-
+          FailuresService.syncOrderSummaries keyed its `desired` map on the raw
+          failure order number and looked orders up with exact equality. Where
+          the same order number is stored in different cases (DEF-01), the join
+          matched nothing.
+        consequence: >-
+          Worse than a missing link. The full-resync branch selects any order
+          carrying a provisioning summary, finds no case-matching failure, and
+          CLEARS the summary — then reclassification moves the order out of
+          Customer Impacted. A customer-impacting order silently stops looking
+          customer-impacting.
+        surfaced_by: >-
+          ENG-1104. Removing the row a failure matched exactly leaves a survivor
+          spelled differently, which is precisely the trigger.
+        fix: >-
+          Normalise both sides of the join. Order lookups use case-insensitive
+          matching; unmatched numbers are still reported as the failure spells
+          them.
+        regression_tests: [failures.service.spec — three DEF-02 cases]
 
     # Added by SD-02. Test ids continue the OCT-001 sequence, which ends at TC-18.
     owner_directory_verification:
@@ -2384,6 +2449,53 @@ specification:
         review or by hand rather than by a check.
       human_review_required: true
 
+    - timestamp: '2026-08-14'
+      contributor: claude-agent
+      role: ai_agent
+      action: task_implemented
+      tasks: [ENG-1102, ENG-1104]
+      delta: SD-03
+      requested_by: accountable_owner
+      sections: [metadata, persistence, functional_requirements, engineering, qa_and_verification, exceptions_and_waivers]
+      summary: >-
+        Duplicate diagnostics and resolution. GET /api/v1/duplicates reports
+        groups whose natural key differs only by letter case; POST
+        /api/v1/duplicates/resolve keeps the most recently imported row in each
+        named group and removes the rest. Operations gains a Duplicate Orders
+        page. Domain logic is in services/ingestion/duplicate-resolution.ts and
+        carries no framework dependency.
+      tests_added: 30   # 10 domain, 20 API
+      review_findings_addressed:
+        - >-
+          P1 — the survivor was planned outside the deletion transaction, so a
+          concurrent or scheduled import could make a row marked for deletion
+          the freshest one. The plan is now recomputed inside a serializable
+          transaction and the group aborts with 409 if it changed. Deleting the
+          row we promised to keep is the one outcome this must never produce.
+        - >-
+          P1 — provisioning failures did not re-link to a survivor spelled in a
+          different case, and were actively cleared. Recorded as DEF-02 and
+          fixed.
+        - >-
+          P2 — each variant now shows its import run id, not just the source
+          filename, which FR-21 requires and which matters when filenames repeat.
+        - >-
+          P2 — FR-21's export criterion had no implementation. Added
+          GET /api/v1/duplicates/export and an Export CSV control. The export
+          carries no customer name or email because the underlying query does
+          not select them.
+      guardrails_engaged:
+        - deduplication_key_changes — the key is unchanged; the survivor rule is new
+        - database_migrations_affecting_customer_data — customer order rows are deleted
+      sign_off_recorded: false
+      exception_raised: EXC-06
+      caveat: >-
+        DEF-01 is NOT fixed by this work. ENG-1101, which makes the cross-import
+        lookup agree with the in-batch key, is still outstanding and needs its
+        own sign-off. Until it lands, resolving duplicates is a treadmill: the
+        next import that differs by letter case recreates them.
+      human_review_required: true
+
   open_questions:
     - { id: OQ-01,    question: 'Who is accountable for this platform in production?',                                              blocks: [BLK-07] }
     - { id: OQ-02,    question: 'Is Railway an acceptable long-term host, or is Azure still the target?',                            blocks: [BLK-04] }
@@ -2469,6 +2581,28 @@ specification:
       status: candidate_not_approved
       raised_by: SD-01
       task: ENG-906
+    - id: EXC-06
+      exception: >-
+        ENG-1104 (removal of superseded duplicate order rows) was built and can
+        be run while BLK-11 is open — backup and restore are neither documented
+        nor tested, and there are no down migrations.
+      guardrail: eng_1104_precondition_blk_11_closed
+      rationale: >-
+        Directed by the accountable owner. The risk is materially reduced but
+        not eliminated: history and rule trace are re-pointed to the survivor
+        and the removed row is snapshotted into the survivor's history before
+        deletion, so the order line's past survives without needing a database
+        restore. The row itself is still permanently deleted.
+      residual_risk: >-
+        A wrong resolution cannot be undone from the interface. The audit record
+        names every removed row and its snapshot is in order_history, so a
+        manual reconstruction is possible but is not a tested procedure.
+      scope: >-
+        Applies to running the operation. Does not waive BLK-11 for any other
+        purpose.
+      status: candidate_not_approved
+      raised_by: ENG-1104 implementation
+      task: ENG-1104
 
 review_gate_defaults:
   portfolio_reuse_review:      { required: true, required_before: candidate,     blocks_if_incomplete: true }

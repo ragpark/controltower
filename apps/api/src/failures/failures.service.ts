@@ -6,6 +6,15 @@ import { AuditService } from '../audit/audit.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { ClassificationService } from '../rules/classification.service';
 
+/**
+ * Order numbers join failures to orders. The same order number can be stored
+ * in different letter cases (DEF-01), so the join must normalise or it links
+ * nothing — and a full resync would then clear summaries that should stand.
+ */
+function normaliseOrderNumber(orderNumber: string): string {
+  return orderNumber.trim().toLowerCase();
+}
+
 export interface FailureImportSummary {
   received: number;
   created: number;
@@ -194,13 +203,20 @@ export class FailuresService {
     });
 
     // Most recently reported open failure wins for the order's summary.
+    //
+    // Keyed case-insensitively (DEF-02). Failures join to orders by order
+    // number, and the same order number can be stored in different cases —
+    // that is DEF-01. An exact-match join silently fails to link, and worse,
+    // the full-resync branch below then CLEARS a summary the order should
+    // still carry and reclassifies it out of Customer Impacted.
     const desired = new Map<
       string,
       { category: FailureCategory; owner: string; failedAt: Date }
     >();
     for (const failure of open) {
-      if (desired.has(failure.orderNumber)) continue;
-      desired.set(failure.orderNumber, {
+      const key = normaliseOrderNumber(failure.orderNumber);
+      if (desired.has(key)) continue;
+      desired.set(key, {
         category: failure.category as FailureCategory,
         owner: failure.owner,
         failedAt: failure.orderDate ?? failure.firstSeenAt,
@@ -211,10 +227,12 @@ export class FailuresService {
     // either have an open failure or still carry a summary that must be cleared.
     const orders = await this.prisma.order.findMany({
       where: scope
-        ? { orderNumber: { in: scope } }
+        ? { OR: scope.map((n) => ({ orderNumber: { equals: n, mode: 'insensitive' as const } })) }
         : {
             OR: [
-              { orderNumber: { in: [...desired.keys()] } },
+              ...open.map((f) => ({
+                orderNumber: { equals: f.orderNumber, mode: 'insensitive' as const },
+              })),
               { provisioningCategory: { not: null } },
             ],
           },
@@ -232,9 +250,9 @@ export class FailuresService {
     let linkedOrders = 0;
 
     for (const order of orders) {
-      const target = desired.get(order.orderNumber) ?? null;
+      const target = desired.get(normaliseOrderNumber(order.orderNumber)) ?? null;
       if (target) {
-        matchedNumbers.add(order.orderNumber);
+        matchedNumbers.add(normaliseOrderNumber(order.orderNumber));
         linkedOrders += 1;
       }
 
@@ -255,7 +273,11 @@ export class FailuresService {
       changedOrderIds.push(order.id);
     }
 
-    const unmatchedOrderNumbers = [...desired.keys()].filter((n) => !matchedNumbers.has(n));
+    // Report the numbers as the failures spell them, not as normalised keys.
+    const spelling = new Map(open.map((f) => [normaliseOrderNumber(f.orderNumber), f.orderNumber]));
+    const unmatchedOrderNumbers = [...desired.keys()]
+      .filter((n) => !matchedNumbers.has(n))
+      .map((n) => spelling.get(n) ?? n);
     return { linkedOrders, unmatchedOrderNumbers, changedOrderIds };
   }
 

@@ -69,3 +69,42 @@ export interface BulkOrderRequest {
   classification?: Classification;
   reason?: string;
 }
+
+/** A single stored row inside a suspected duplicate group (FR-21). */
+export interface DuplicateVariantDto {
+  id: string;
+  orderNumber: string;
+  productCode: string;
+  productName: string | null;
+  orderStatus: string | null;
+  classification: string | null;
+  importedAt: string;
+  sourceFile: string | null;
+  importRunId: string | null;
+  /** True for the row that would be kept: the most recently imported. */
+  survivor: boolean;
+}
+
+export interface DuplicateGroupDto {
+  /** Case-insensitive natural key shared by every variant. */
+  key: string;
+  orderNumber: string;
+  productCode: string;
+  variantCount: number;
+  removableCount: number;
+  variants: DuplicateVariantDto[];
+}
+
+export interface DuplicateReportDto {
+  groups: DuplicateGroupDto[];
+  groupCount: number;
+  removableCount: number;
+}
+
+export interface DuplicateResolutionResultDto {
+  groupsResolved: number;
+  ordersRemoved: number;
+  historyRowsReattached: number;
+  ruleExecutionsReattached: number;
+  ordersResynced: number;
+}
