@@ -30,7 +30,7 @@ specification:
   metadata:
     spec_id: AHCTL-02
     title: ActiveHub Control Tower
-    version: 1.2.0-draft
+    version: 1.3.0-draft
     status: draft
     pending_ratification:
       - delta: SD-01
@@ -43,6 +43,12 @@ specification:
         awaiting: accountable_owner_ratification
         depends_on: SD-01
         human_sign_off_required: retention_or_pii_handling_changes
+      - delta: SD-03
+        summary: Duplicate order diagnostics (DEF-01) and Top Products scoped to Completed — FR-21, FR-22
+        prepared_by: claude-agent
+        awaiting: accountable_owner_ratification
+        depends_on: SD-02
+        human_sign_off_required: [deduplication_key_changes, database_migrations_affecting_customer_data]
     classification: internal
     business_unit: null
     product_area: ActiveHub
@@ -522,6 +528,65 @@ specification:
         traceability: [G-05, UX-J06, ADR-18, ENG-1001, ENG-1002, ENG-1003, ENG-1004, ENG-1005, ENG-1006]
         open_questions: [OQ-A2-05, OQ-A2-06]
 
+      - id: FR-21
+        title: Duplicate order diagnostics
+        delta: SD-03
+        status: proposed_awaiting_ratification
+        description: >-
+          A read-only Operations view listing suspected duplicate order lines,
+          grouped by the case-insensitive natural key, showing each stored
+          variant and where it came from — so the scale and the cause of
+          duplication can be established before anything is merged or deleted.
+        priority: must
+        rationale: >-
+          Duplicates were reported by the accountable owner. The requested fix
+          was "deduplicate on Order Number and ISBN", but that is already the
+          deduplication key (ADR-04) — product_code carries the ISBN in this
+          data model, and the pair is a database unique constraint. Exact
+          duplicates on that key are therefore impossible. What is possible is
+          DEF-01 below. A diagnostic view establishes what is actually in the
+          database rather than acting on a theory.
+        read_only: true
+        acceptance_criteria:
+          - Given order lines whose natural keys differ only by letter case, when the diagnostics view is opened, then they are grouped together as one suspected duplicate group.
+          - Given a suspected duplicate group, when it is displayed, then every stored variant is shown verbatim, with its import run, source and imported_at, so the operator can see which import introduced which variant.
+          - Given the view, when it is used, then it performs no write of any kind — no merge, no delete, no reclassification.
+          - Given no duplicates exist, when the view is opened, then an empty state says so explicitly rather than showing a blank table.
+          - Given an operator role, when the view is opened, then it is permitted; given a viewer, then it is also permitted, since it is read-only.
+          - Given the view is exported, when the export is produced, then it contains no customer name or email — the group is identified by order number and product code only.
+        dependencies: [ADR-04, FR-08]
+        traceability: [G-04, ADR-04, DEF-01, ENG-1101, ENG-1102]
+        open_questions: [OQ-A2-07, OQ-A2-08]
+
+      - id: FR-22
+        title: Top Products counts completed orders only
+        delta: SD-03
+        status: proposed_awaiting_ratification
+        description: >-
+          The Top Products chart on the dashboard counts only orders classified
+          COMPLETED. Pending, Placed, Customer Impacted, Exception,
+          Investigate Required, Cancelled and unclassified orders are excluded.
+        priority: should
+        rationale: >-
+          As delivered, GET /dashboard/by-product groups every order row with no
+          classification filter at all, so the chart answers "what did we
+          receive" while being read as "what did we sell".
+        supersedes_behaviour: >-
+          Unqualified product breakdown inherited from OCT-001. The formal
+          amendment to the inherited dashboard FR cannot be drafted until
+          ENG-900 restores that FR's definition to the record — BLK-18.
+        acceptance_criteria:
+          - Given orders across every classification, when the Top Products chart renders, then only COMPLETED orders are counted.
+          - Given orders with a null classification, when the chart renders, then they are excluded — unclassified is not completed.
+          - Given the chart is displayed, when it is read, then its label states the filter, so it cannot be misread as total volume alongside the unfiltered panels.
+          - Given no completed orders exist in range, when the chart renders, then an empty state is shown rather than an empty axis.
+          - Given the API, when by-product is called without a classification filter, then existing behaviour is unchanged — the filter is an explicit parameter and the dashboard passes COMPLETED, so the endpoint contract does not silently change meaning for any future consumer.
+        api_impact:
+          endpoint: GET /api/v1/dashboard/by-product
+          change: adds an optional classification filter parameter
+          contract_test_required: true
+        traceability: [G-01, FR-01, ENG-1103]
+
   ux_and_accessibility:
     design_system: MUI v6 with MUI X DataGrid; local component library in packages/ui-components
     brand_alignment: >-
@@ -772,6 +837,12 @@ specification:
         - ENG-1004_reassign_from_directory
         - ENG-1005_seed_and_backfill_from_failure_routing
         - ENG-1006_pii_controls_for_owner_email
+      # Added by SD-03
+      p11_duplicate_integrity_and_reporting:
+        - ENG-1101_fix_cross_import_dedup_case_sensitivity
+        - ENG-1102_duplicate_diagnostics_read_only
+        - ENG-1103_top_products_completed_only
+        - ENG-1104_merge_existing_duplicates   # gated — see below
     build_invariants:
       - { id: BI-01, invariant: 'apps/api/tsconfig.build.json keeps rootDir "src" and excludes prisma' }
       - { id: BI-02, invariant: 'Dockerfile `test -f` entrypoint guards retained' }
@@ -812,6 +883,70 @@ specification:
           - record an exceptions_and_waivers entry naming what was skipped and why, same working day
           - add a contribution_log entry
         currently_applicable_to: [BLK-01]
+
+    # -----------------------------------------------------------------------
+    # SD-03 task detail — duplicate integrity and Top Products scoping.
+    # Sequencing is deliberate: diagnose, then stop the bleeding, then and only
+    # then consider touching existing rows.
+    # -----------------------------------------------------------------------
+    duplicate_integrity:
+      requirements: [FR-21, FR-22]
+      defect: DEF-01
+      tasks:
+        - id: ENG-1102
+          title: Duplicate diagnostics, read only
+          requirement: FR-21
+          sequence: 1
+          rationale: >-
+            Runs first. Establishes what is actually duplicated before any
+            code changes behaviour or touches a row.
+          acceptance_criteria:
+            - Given the endpoint, when it is called, then it returns groups keyed on the case-insensitive natural key with every stored variant and its provenance.
+            - Given the implementation, when it is reviewed, then it issues read queries only.
+            - Given the UI, when it renders in Operations, then it is reachable from the Operations navigation and states plainly that it changes nothing.
+        - id: ENG-1101
+          title: Make cross-import deduplication agree with in-batch deduplication
+          defect: DEF-01
+          sequence: 2
+          human_sign_off_required: true
+          sign_off_reason: deduplication_key_changes
+          rationale: >-
+            Stops new duplicates. Does not repair existing ones — that is
+            ENG-1104, deliberately separated.
+          acceptance_criteria:
+            - Given TC-27, when it is run before the fix, then it fails; when run after, then it passes.
+            - Given the natural key, when the fix lands, then it is still (order_number, product_code) — ADR-04 is unchanged in substance.
+            - Given the comparison, when it is implemented, then one shared helper defines key equality for both the in-batch path and the cross-import lookup, so the two cannot drift apart again.
+            - Given a case-insensitive lookup, when it runs at import scale, then it uses an index rather than a sequential scan.
+            - Given genuine multi-line orders, when they are imported, then they are unaffected.
+        - id: ENG-1103
+          title: Top Products counts completed only
+          requirement: FR-22
+          sequence: independent
+          note: Independent of the duplicate work; can be built and merged on its own.
+          acceptance_criteria:
+            - Given the dashboard, when Top Products renders, then it counts COMPLETED orders only and its label states so.
+            - Given the by-product endpoint called without the new filter, when it responds, then behaviour is unchanged — contract test TC-33.
+        - id: ENG-1104
+          title: Merge or reconcile existing duplicate rows
+          sequence: 3
+          status: gated_not_authorised
+          human_sign_off_required: true
+          sign_off_reason: [database_migrations_affecting_customer_data, deduplication_key_changes]
+          preconditions:
+            - FR-21 diagnostics have run and the population is understood
+            - BLK-11 closed — backup and restore documented and tested, because this is the first operation in the platform's history that destroys customer order rows
+            - a reversal path exists, or the merge is soft, preserving the superseded row
+          rationale: >-
+            Deliberately gated. Merging order lines is irreversible, touches
+            customer data, and would run today against a platform with no
+            tested restore (BLK-11) and no authentication in production
+            (BLK-01). The diagnostics view delivers most of the operational
+            value at none of that risk.
+          acceptance_criteria:
+            - Given a duplicate group, when it is merged, then order_history retains every superseded variant and an audit record names the operator, the surviving row and each row merged into it.
+            - Given a merge, when it completes, then provisioning failure links, rule executions and history rows previously attached to a merged row still resolve.
+            - Given a merge, when it is requested, then it is explicitly confirmed by an operator per group — no bulk automatic merge.
 
     # -----------------------------------------------------------------------
     # SD-02 task detail — FR-20 team owner directory.
@@ -979,6 +1114,51 @@ specification:
       - { task: ENG-904, verified_by: 'skill run against a guardrail-colliding request stops instead of drafting' }
       - { task: ENG-905, verified_by: 'direct push to main is rejected; unreviewed merge is blocked' }
       - { task: ENG-906, verified_by: 'CLAUDE.md and agent_manifest.guardrails compared for agreement' }
+    # -----------------------------------------------------------------------
+    # Added by SD-03. Defects are recorded here with their root cause and the
+    # regression test that must fail before the fix.
+    # -----------------------------------------------------------------------
+    defects:
+      - id: DEF-01
+        title: Cross-import deduplication is case-sensitive while in-batch deduplication is not
+        raised_by: SD-03
+        severity: S2
+        severity_rationale: >-
+          Orders silently duplicated. Classification, queue counts, trend
+          buckets and every dashboard total are inflated by the duplicate rows.
+        status: open
+        reported_symptom: duplicates observed in the database by the accountable owner
+        root_cause: >-
+          services/ingestion/src/dedup.ts dedupKey() collapses in-file
+          duplicates on `orderNumber.trim().toLowerCase()` plus
+          `productCode.trim().toLowerCase()`. The cross-import lookup in
+          apps/api/src/imports/orchestrator.service.ts upsertOrder() queries
+          the orderNumber_productCode unique index with the raw values, and
+          Postgres text equality is exact. The two disagree on what "the same
+          order line" means.
+        consequence: >-
+          The same logical order line arriving in two imports with different
+          letter case is inserted twice. The database unique constraint does
+          not prevent it, because the strings genuinely differ. Whitespace is
+          not affected — pick() already trims on parse.
+        confidence: >-
+          Mechanism confirmed by reading the code. NOT confirmed against the
+          production database — no query has been run. FR-21 exists to
+          establish whether this is the cause of the reported duplicates, or
+          only one of them.
+        alternative_causes_to_rule_out_via_FR-21:
+          - multi-line orders read as duplicates — one order number, several product codes, which is correct data and not duplication
+          - product codes differing by punctuation, for example a hyphenated ISBN against an unhyphenated one
+          - order numbers carrying a source-specific prefix in one feed and not another
+        guardrail_engaged: deduplication_key_changes
+        guardrail_note: >-
+          The natural key is NOT being changed — it remains
+          (order_number, product_code) per ADR-04. What changes is how the two
+          sides are compared. That still meets the sign-off threshold and must
+          not be treated as a routine fix.
+        regression_test_required: true
+        tasks: [ENG-1101, ENG-1104]
+
     # Added by SD-02. Test ids continue the OCT-001 sequence, which ends at TC-18.
     owner_directory_verification:
       - { id: TC-19, requirement: FR-20, case: 'operator and viewer receive 403 from the team owners administration endpoints' }
@@ -989,6 +1169,15 @@ specification:
       - { id: TC-24, requirement: FR-20, case: 'seed is idempotent — running twice creates no duplicate teams' }
       - { id: TC-25, requirement: FR-20, case: 'team email appears in no log line, metric label, event payload or error report' }
       - { id: TC-26, requirement: FR-20, case: 'queue renders with an unresolved-owner indicator when the directory has no matching team' }
+    # Added by SD-03
+    dedup_and_top_products_verification:
+      - { id: TC-27, requirement: DEF-01, case: 'REGRESSION — an order stored as ORD-1/9780141036144 then re-imported as ord-1/9780141036144 updates the existing row; must fail before the fix', must_fail_first: true }
+      - { id: TC-28, requirement: DEF-01, case: 'the in-batch dedup key and the cross-import lookup agree — property test over case and whitespace variants' }
+      - { id: TC-29, requirement: DEF-01, case: 'genuine multi-line orders — one order number with different product codes — are never collapsed' }
+      - { id: TC-30, requirement: FR-21, case: 'variants differing only by case are grouped, and every stored variant is listed with its import run' }
+      - { id: TC-31, requirement: FR-21, case: 'the diagnostics endpoint performs no write — verified by asserting no audit entry and no row change' }
+      - { id: TC-32, requirement: FR-22, case: 'Top Products counts COMPLETED only and excludes null classification' }
+      - { id: TC-33, requirement: FR-22, case: 'CONTRACT — by-product without the filter returns the pre-existing unfiltered shape and counts' }
     acceptance_recommendation:
       status: not_recommended_for_certification
       rationale: >-
@@ -1123,6 +1312,9 @@ specification:
       - { goal: G-05, requirements: [FR-11, FR-12, FR-13], ux: [UX-J03],         architecture: [ADR-06, ADR-07, ADR-08], engineering: [PR5], tests: [TC-08, TC-09, TC-10, TC-11, TC-12, TC-13], release_control: sm_02_not_instrumented }
       # Added by SD-02
       - { goal: G-05, requirements: [FR-20], ux: [UX-J06], architecture: [ADR-18], engineering: [ENG-1001, ENG-1002, ENG-1003, ENG-1004, ENG-1005, ENG-1006], tests: [owner_directory_verification], release_control: '🔴 deployment gated on BLK-01; human sign-off required on retention_or_pii_handling_changes' }
+      # Added by SD-03
+      - { goal: G-04, requirements: [FR-21], ux: [], architecture: [ADR-04], engineering: [ENG-1101, ENG-1102, ENG-1104], tests: [TC-27, TC-28, TC-29, TC-30, TC-31], release_control: 'ENG-1101 sign-off on deduplication_key_changes; ENG-1104 gated on BLK-11' }
+      - { goal: G-01, requirements: [FR-22], ux: [], architecture: [], engineering: [ENG-1103], tests: [TC-32, TC-33], release_control: contract_test_on_by_product }
       - { goal: G-06, requirements: [FR-17, FR-18],        ux: [],               architecture: [ADR-10], engineering: [ENG-701, ENG-704], tests: [TC-17], release_control: '🔴 NOT ENFORCED IN PRODUCTION' }
       # Added by SD-01. Verification is the validator and the generator rather
       # than application test cases; see qa_and_verification.spec_operations_verification.
@@ -1215,6 +1407,36 @@ specification:
         into a platform whose POLARIS review has not started (BLK-02) and whose
         production surface is unauthenticated (BLK-01). FR-20 carries a
         deployment gate on BLK-01 for that reason.
+    - timestamp: '2026-08-12'
+      contributor: claude-agent
+      role: ai_agent
+      action: spec_delta_prepared
+      delta_id: SD-03
+      requested_by: accountable_owner
+      sections: [metadata, functional_requirements, engineering, qa_and_verification, traceability, open_questions]
+      summary: >-
+        Duplicate order integrity and Top Products scoping. Records DEF-01 —
+        in-batch deduplication is case-insensitive while the cross-import
+        lookup is case-sensitive, so the same order line arriving in two
+        imports with different letter case is stored twice. Adds FR-21
+        (read-only duplicate diagnostics), FR-22 (Top Products counts COMPLETED
+        only), tasks ENG-1101…1104 and TC-27…TC-33.
+      intake_finding: >-
+        The requested feature — deduplicate on Order Number and ISBN — is
+        already the deduplication key. product_code carries the ISBN in this
+        data model and the pair is a unique constraint, so exact duplicates on
+        it cannot exist. The request is therefore recorded as a defect and a
+        diagnostic requirement rather than as new deduplication.
+      depends_on: SD-02
+      prepared_not_approved: true
+      human_review_required: true
+      human_sign_off_required: [deduplication_key_changes, database_migrations_affecting_customer_data]
+      ratification_required_from: accountable_owner
+      note: >-
+        DEF-01's mechanism is confirmed from the code; it is NOT confirmed
+        against the production database, which has not been queried. ENG-1104,
+        which would merge existing rows, is gated on BLK-11 because the
+        platform has no tested restore.
 
   open_questions:
     - { id: OQ-01,    question: 'Who is accountable for this platform in production?',                                              blocks: [BLK-07] }
@@ -1254,6 +1476,32 @@ specification:
       recommendation: >-
         Shared mailboxes. They satisfy the outcome, avoid holding individuals'
         personal data, and do not go stale when someone changes role.
+      status: open
+    # Added by SD-03
+    - id: OQ-A2-07
+      question: >-
+        When duplicates are found, should the platform merge them
+        automatically, or list them for an operator to confirm one group at a
+        time?
+      raised_by: SD-03
+      blocks: [ENG-1104]
+      recommendation: >-
+        Operator-confirmed. An automatic merge is irreversible, runs against
+        customer data, and would execute today with no tested restore
+        (BLK-11). Confirmation also surfaces the multi-line-order case, where
+        merging would be wrong.
+      status: open
+    - id: OQ-A2-08
+      question: >-
+        Beyond letter case, which product code variants should count as the
+        same product — hyphenated against unhyphenated ISBNs, ISBN-10 against
+        ISBN-13?
+      raised_by: SD-03
+      blocks: [FR-21 grouping rule]
+      recommendation: >-
+        Answer from the FR-21 diagnostics output rather than in advance.
+        Normalising ISBN-10 to ISBN-13 is a real transformation with a real
+        error rate and should not be adopted speculatively.
       status: open
 
   exceptions_and_waivers:
