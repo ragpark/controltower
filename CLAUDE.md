@@ -161,13 +161,13 @@ input rather than blaming the user.
   against a list holding 22 open) and were corrected in delta **SD-01**; the
   open-question count of 11 was correct — 13 raised, 2 closed by
   reconciliation. **ENG-902** makes the recount mechanical.
-- **Traceability currently dangles — BLK-18.** `traceability.links` references
-  `FR-01…FR-19`, `TC-01…TC-18`, `ADR-01…ADR-15`, `UX-J01…J05` and `C-01…C-08`,
-  whose definitions were condensed out of AHCTL-02 and survive only in the
-  delivery pack and in git history (commit `c880653`). Until **ENG-900**
-  restores them, do not assume an ID in the matrix is defined in the record —
-  and do not generate the pack from the YAML, which would destroy the
-  surviving copy.
+- **Traceability resolves — BLK-18 remediated by ENG-900.** `FR-01…FR-19`,
+  `ADR-01…ADR-15`, `TC-01…TC-18`, `UX-J01…J05`, `C-01…C-08`, the API and event
+  contracts, the data entities and the personas are all defined in the YAML.
+  The record is self-contained: **never defer to the delivery pack for
+  detail** — and it is now safe for **ENG-901** to generate the pack from the
+  YAML. BLK-18 stays open until the owner confirms; the remediation is
+  recorded, not self-certified.
 - Add a `contribution_log` entry for every change to the record.
 
 ## Open items Claude must not silently decide
