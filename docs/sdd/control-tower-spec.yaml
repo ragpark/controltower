@@ -53,8 +53,8 @@ specification:
     initiating_contributor: paul.coyne@pearson.com
     created_by: paul.coyne@pearson.com
     created_at: '2026-08-12'
-    last_updated_by: paul.coyne@pearson.com
-    last_updated_at: '2026-08-12'
+    last_updated_by: claude-agent   # ENG-900
+    last_updated_at: '2026-08-14'
     certification_status: not_started
     human_review_required: true
     supersedes:
@@ -887,11 +887,6 @@ specification:
           risk: Drawer focus trap and return-focus behaviour unverified
       status: no_accessibility_review_has_been_performed
       blocker: BLK-06
-    accessibility:
-      target_standard: WCAG 2.2 AA
-      eaa_alignment_required: true
-      status: no_accessibility_review_has_been_performed
-      blocker: BLK-06
 
   architecture:
     current_state:
@@ -1461,7 +1456,7 @@ specification:
         - id: ENG-900
           title: Re-hydrate the definitions condensed out of AHCTL-02
           status: delivered_awaiting_owner_confirmation
-          delivered_at: '2026-08-12'
+          delivered_at: '2026-08-14'
           blocks: [ENG-901]
           unblocks_now: [ENG-901, 'FR-13 amendment in SD-02', 'dashboard FR amendment in SD-03']
           closes: [BLK-18]
@@ -1493,6 +1488,7 @@ specification:
           acceptance_criteria:
             - Given the spec YAML, when the job runs, then it fails if the file does not parse or if any of the 21 schema v2.0.0 sections is absent.
             - Given a duplicate id anywhere in the record, when the job runs, then it fails and names the duplicate.
+            - Given a duplicate mapping KEY anywhere in the record, when the job runs, then it fails and names both line numbers. A standard YAML loader keeps only the last occurrence, so a duplicate key silently deletes content — this exact defect reached PR #12 and was caught by review rather than by a check.
             - Given a traceability reference with no matching definition, when the job runs, then it fails and names the dangling reference.
             - Given a derived count that disagrees with the list it summarises, when the job runs, then it fails and prints both numbers — this check must fail today against open_blocker_summary until SD-01 lands.
             - Given an FR with no linked test case, when the job runs, then it reports the orphan.
@@ -1697,7 +1693,7 @@ specification:
         status: remediated_awaiting_owner_confirmation
         remediation:
           task: ENG-900
-          delivered_at: '2026-08-12'
+          delivered_at: '2026-08-14'
           summary: >-
             FR-01…FR-19, ADR-01…ADR-15, TC-01…TC-18, UX-J01…UX-J05, C-01…C-08,
             the 43 API endpoints, the 6 event contracts, the 10 data entities,
@@ -1818,7 +1814,7 @@ specification:
         Prepared by an AI agent under ai_may_prepare. No review gate has been
         marked passed, no blocker closed and no ADR ratified by this entry.
 
-    - timestamp: '2026-08-12'
+    - timestamp: '2026-08-14'
       contributor: claude-agent
       role: ai_agent
       action: task_implemented
@@ -1836,6 +1832,21 @@ specification:
         definitions. Every id referenced by traceability.links now resolves
         within this file.
       content_authored: none — restoration only
+      review_corrections:
+        - >-
+          A duplicate `accessibility` mapping key silently discarded the
+          restored test_requirements and the A11Y-R01…R04 risk register when
+          parsed — the restoration was present in the file but absent from the
+          record. Merged into one mapping. Raised by automated review on PR #12.
+        - >-
+          ENG-900 delivery dates and this log entry were backdated to
+          2026-08-12; the change was authored on 2026-08-14. Corrected.
+          metadata.last_updated_* now reflects this change rather than the
+          owner's previous edit.
+        - >-
+          ENG-902 acceptance criteria extended with a duplicate-mapping-key
+          check. This amends a task in ratified delta SD-01 and is flagged for
+          owner confirmation rather than treated as settled.
       blocker_status_changed:
         BLK-18: open -> remediated_awaiting_owner_confirmation
       not_closed_because: >-
