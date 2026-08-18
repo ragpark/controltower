@@ -30,7 +30,7 @@ specification:
   metadata:
     spec_id: AHCTL-02
     title: ActiveHub Control Tower
-    version: 1.3.2-draft
+    version: 1.4.0-draft
     status: draft
     ratified:
       - delta: SD-01
@@ -63,6 +63,15 @@ specification:
             ENG-1103 (Top Products) needs no sign-off and may proceed.
             ENG-1101 needs the deduplication sign-off. ENG-1104 remains
             gated_not_authorised pending BLK-11.
+    pending_ratification:
+      - delta: SD-04
+        summary: Deploy to the Cookie Citizen Developer Platform as one combined image — ADR-19, ADR-20, ENG-1201…1210
+        prepared_by: claude-agent
+        awaiting: accountable_owner_ratification
+        human_sign_off_required: [hosting_platform_or_residency_affecting_changes, ci_cd_and_deployment_configuration_changes]
+        note: >-
+          Topology chosen by the accountable owner on 2026-08-14: a single
+          combined image, in preference to splitting the monorepo.
     pending_owner_confirmation:
       - task: ENG-900
         summary: Condensed definitions restored; BLK-18 remediation awaiting confirmation
@@ -124,10 +133,14 @@ specification:
       submitted_version: null
     versioning:
       major_version: 1
-      minor_version: 3
-      patch_version: 2
+      minor_version: 4
+      patch_version: 0
       version_history_required: true
       change_summary: >-
+        SD-04 spec delta: adapt the platform to build and deploy on the Cookie
+        Citizen Developer Platform (CDP) as a single combined container image.
+        Prepared by agent; awaiting ratification and two sign-offs.
+      previous_change_summary: >-
         ENG-1102 and ENG-1104 implementation of ratified delta SD-03: duplicate
         diagnostics and the removal of superseded duplicate order lines,
         keeping the most recently imported row. Adds one acceptance criterion
@@ -1386,6 +1399,60 @@ specification:
             - provisioning_failures gains a nullable team code alongside the existing owner string; the string remains the historical record.
             - Existing rows are backfilled by matching the six seeded owner names; unmatched rows keep their string and show as unresolved.
             - Deleting a referenced team is refused; deactivation is offered instead.
+        - id: ADR-19
+          decision: >-
+            On CDP the platform ships as ONE container image listening on 8080.
+            Next.js runs as the public process and proxies /api/* over loopback
+            to the NestJS process via a Next rewrite; Nest is not exposed.
+          status: proposed_awaiting_ratification
+          delta: SD-04
+          topology_decided_by: accountable owner, 2026-08-14
+          rationale: >-
+            CDP is one app per repo and one image: the shared workflow takes a
+            single app-name, the registry path is .../octopai/{app-name}, and
+            the Dockerfile is expected at the repo root. Two deployables do not
+            map onto that. Splitting the monorepo was the alternative and was
+            not chosen; combining avoids publishing or vendoring the shared
+            services/* and packages/* workspaces.
+          alternatives_rejected:
+            - split into two repositories, each a CDP app
+            - register two CDP apps against one repo — unverified; the portal is
+              unreachable from the build environment, so it could not be tested
+            - API on CDP with the web app elsewhere
+          consequences:
+            - A web-only change redeploys the API, and vice versa. The two
+              deployables are coupled at release even though ADR-01 keeps the
+              domain libraries independent. Recorded as EXC-07.
+            - Two processes in one container need a supervising entrypoint that
+              forwards signals and reaps children, and that exits if either
+              process dies. Getting this wrong produces a container that stays
+              "up" with a dead API.
+            - The browser calls /api on its own origin, so NEXT_PUBLIC_API_URL
+              becomes empty and the CORS allowlist stops mattering for the app
+              itself.
+            - No SIF nginx or distroless base exists, so the proxy must be the
+              Next server rather than a web server in front of it.
+          risks:
+            - id: ARCH-R06
+              risk: single point of failure for both surfaces
+            - id: ARCH-R07
+              risk: process supervision in-container is easy to get subtly wrong
+        - id: ADR-20
+          decision: >-
+            Every FROM line uses a Pearson Secure Image Factory (SIF) base
+            image. Public bases are prohibited.
+          status: proposed_awaiting_ratification
+          delta: SD-04
+          rationale: >-
+            Mandated by CDP. Enforcement is documented as changing from warn to
+            blocking imminently; a non-SIF FROM will then fail the build and be
+            rejected at cluster admission. Node.js is a supported SIF stack, so
+            there is a migration path.
+          consequences:
+            - The four `node:22-alpine` FROM lines across the two current
+              Dockerfiles must be replaced.
+            - The exact registry reference and tag are not in the documentation
+              and the portal is unreachable from here — OQ-A2-09.
     non_functional_requirements:
       api_p95_latency_ms: 500
       api_p95_status: not_load_tested
@@ -1673,6 +1740,18 @@ specification:
         - ENG-1005_seed_and_backfill_from_failure_routing
         - ENG-1006_pii_controls_for_owner_email
       # Added by SD-03
+      # Added by SD-04 — CDP build and deploy
+      p12_cdp_platform_migration:
+        - ENG-1201_cookie_yaml_and_app_registration
+        - ENG-1202_single_port_8080_topology
+        - ENG-1203_health_and_ready_endpoints
+        - ENG-1204_root_dockerfile_combined_image
+        - ENG-1205_sif_base_images
+        - ENG-1206_ci_workflow_calls_shared_pipeline
+        - ENG-1207_dev_branch_strategy
+        - ENG-1208_sca_gate_remediation
+        - ENG-1209_prove_the_image_builds_and_boots
+        - ENG-1210_decide_railway_disposition
       p11_duplicate_integrity_and_reporting:
         - ENG-1101_fix_cross_import_dedup_case_sensitivity
         - ENG-1102_duplicate_diagnostics_read_only
@@ -1682,6 +1761,10 @@ specification:
       - { id: BI-01, invariant: 'apps/api/tsconfig.build.json keeps rootDir "src" and excludes prisma' }
       - { id: BI-02, invariant: 'Dockerfile `test -f` entrypoint guards retained' }
       - { id: BI-03, invariant: 'Web Dockerfile copies and builds every workspace package imported' }
+      # Added by SD-04
+      - { id: BI-04, invariant: 'The CDP image exposes exactly one port, 8080, and serves /health and /ready on it', why: 'CDP probes are fixed to the .cookie.yaml values; a mismatch produces CrashLoopBackOff with a healthy-looking build' }
+      - { id: BI-05, invariant: 'No FROM line references a public registry', why: 'SIF enforcement flips from warn to blocking; a public base will fail the build and be rejected at cluster admission' }
+      - { id: BI-06, invariant: 'The combined image supervisor exits non-zero if either child process dies, and forwards SIGTERM to both', why: 'Otherwise the pod stays Ready with a dead API behind a live web server' }
 
     # -----------------------------------------------------------------------
     # Added by SD-01 — how change is requested and how it lands in the record.
@@ -1718,6 +1801,102 @@ specification:
           - record an exceptions_and_waivers entry naming what was skipped and why, same working day
           - add a contribution_log entry
         currently_applicable_to: [BLK-01]
+
+    # -----------------------------------------------------------------------
+    # SD-04 task detail — CDP migration. Sequenced so the image is proven to
+    # boot before anything is pointed at production.
+    # -----------------------------------------------------------------------
+    cdp_migration:
+      adrs: [ADR-19, ADR-20]
+      platform: Cookie Citizen Developer Platform (CDP)
+      human_sign_off_required: [hosting_platform_or_residency_affecting_changes, ci_cd_and_deployment_configuration_changes]
+      sign_off_status: not_obtained
+      platform_facts:
+        source: CDP documentation, CI/CD & Build Standards, read 2026-08-14
+        ci_trigger_branch: dev
+        push_behaviour: >-
+          A push to dev runs validation and the SCA scan only. It does not build
+          an image and does not deploy.
+        build_trigger: deploy dispatched from the portal or by an agent action
+        registry: europe-west2-docker.pkg.dev/gitworksnonprd/octopai/{app-name}
+        delivery: pipeline bumps the image tag in a GitOps manifest; ArgoCD rolls out
+        credentials: Workload Identity Federation; no repository secrets required
+        probe_defaults: { port: 8080, health_path: /health }
+        sca: Snyk, blocking, over every dependency manifest in the repo
+      tasks:
+        - id: ENG-1201
+          title: Register the app and add .cookie.yaml
+          owner_action_required: true
+          note: Registration is done in the portal, which is unreachable from the build environment.
+          acceptance_criteria:
+            - Given the repo, when CI runs, then .cookie.yaml declares the port and health path the container actually serves.
+            - Given the portal, when the app is registered, then its app-name matches the value passed to the shared workflow.
+        - id: ENG-1202
+          title: Serve everything on port 8080
+          implements: ADR-19
+          acceptance_criteria:
+            - Given the container, when it starts, then exactly one port is exposed and it is 8080.
+            - Given a browser request for a page, when it arrives on 8080, then Next.js serves it.
+            - Given a request to /api/*, when it arrives on 8080, then it is proxied over loopback to Nest and Nest is not itself reachable from outside the pod.
+            - Given the browser bundle, when it calls the API, then it uses a same-origin relative path — NEXT_PUBLIC_API_URL is empty in the CDP image.
+            - Given either process exits, when the supervisor notices, then the container exits non-zero rather than staying up with a dead half.
+            - Given SIGTERM, when the container is stopping, then the signal reaches both child processes.
+        - id: ENG-1203
+          title: Health and readiness endpoints on the paths CDP probes
+          acceptance_criteria:
+            - Given GET /health on 8080, when the process is alive, then it returns 200 without touching the database — a database blip must not restart the pod.
+            - Given GET /ready on 8080, when the database is reachable, then it returns 200; when it is not, then it returns 503 within a short timeout.
+            - Given the existing /healthz, /readyz and /metrics, when the change lands, then they continue to work for the Railway deployment and for local development.
+        - id: ENG-1204
+          title: Root Dockerfile producing the combined image
+          implements: ADR-19
+          human_sign_off_required: true
+          sign_off_reason: modify_dockerfile_build_stages_without_proving_the_image_builds
+          acceptance_criteria:
+            - Given the repo root, when CDP scans it, then a Dockerfile is present and used directly rather than generated.
+            - Given the build, when it completes, then BI-01 holds — the API entrypoint is dist/main.js, not dist/src/main.js.
+            - Given the build, when it completes, then BI-02 holds — `test -f` entrypoint guards are present for both the API and the web server.
+            - Given the build, when it completes, then BI-03 holds — every workspace package the web app imports is copied and built, with no dangling symlink.
+            - Given the existing apps/api and apps/web Dockerfiles, when this lands, then they still build, because Railway depends on them until ENG-1210 is decided.
+        - id: ENG-1205
+          title: Move every FROM to a Secure Image Factory base
+          implements: ADR-20
+          blocked_by: OQ-A2-09
+          blocked_reason: The SIF registry reference and tag are not published in the documentation and the portal is unreachable from here.
+          acceptance_criteria:
+            - Given any Dockerfile in the repo, when its FROM lines are read, then none references docker.io, ghcr.io or a bare public tag.
+            - Given the SIF Node base, when the image is built, then it builds and boots unchanged in behaviour.
+        - id: ENG-1206
+          title: CI workflow calls the shared cookie pipeline
+          human_sign_off_required: true
+          sign_off_reason: ci_cd_and_deployment_configuration_changes
+          acceptance_criteria:
+            - Given .github/workflows, when CI is configured, then it calls the platform-managed workflow with the registered app-name and secrets inherit.
+            - Given the existing build-and-test job, when the change lands, then it still runs on pull requests — CDP validation does not replace our own tests.
+        - id: ENG-1207
+          title: Decide and implement the dev branch strategy
+          owner_decision_required: true
+          acceptance_criteria:
+            - Given CDP triggers on dev and our trunk is main, when the strategy is decided, then the record states which branch is reviewed, which is deployed and how they stay in step.
+            - Given ENG-905 branch protection, when dev exists, then the protection rules cover whichever branch can reach production.
+        - id: ENG-1208
+          title: Pass the blocking SCA gate
+          acceptance_criteria:
+            - Given every dependency manifest in the repo, when Snyk scans them, then each resolves and installs.
+            - Given a HIGH or above finding, when it is reported, then it is remediated by bumping to the fixed version, or an exception is recorded with a named approver.
+        - id: ENG-1209
+          title: Prove the image builds and boots before pointing anything at it
+          sequence: last_before_any_production_use
+          acceptance_criteria:
+            - Given the combined image, when it is built, then the build is evidenced in the pull request — CI does not build images (BLK-05) and CDP builds only on deploy dispatch, so a green pull request proves nothing about the image.
+            - Given the image running locally, when /health and /ready are called on 8080, then they behave as ENG-1203 specifies.
+            - Given the image running locally, when the web app is exercised, then /api calls succeed over the loopback proxy.
+        - id: ENG-1210
+          title: Decide the disposition of the Railway deployment
+          owner_decision_required: true
+          relates_to: ADR-12
+          acceptance_criteria:
+            - Given CDP is working, when the decision is made, then the record states whether Railway is retired, kept as a fallback, or kept in parallel, and ADR-12 is closed accordingly.
 
     # -----------------------------------------------------------------------
     # SD-03 task detail — duplicate integrity and Top Products scoping.
@@ -2123,6 +2302,16 @@ specification:
       - { name: ci,          status: available }
       - { name: staging,     status: '🔴 does not exist', blocker: BLK-14 }
       - { name: production,  platform: railway, status: live_unauthenticated }
+      # Added by SD-04
+      - name: cdp
+        platform: Cookie Citizen Developer Platform
+        status: not_yet_provisioned
+        delivery: GitOps manifest bumped by the pipeline; ArgoCD rolls out
+        registry: europe-west2-docker.pkg.dev/gitworksnonprd/octopai/{app-name}
+        residency_signal: >-
+          europe-west2 is London. This is a real input to ADR-15 and BLK-13,
+          where the Railway region was never assessed. It is a signal about the
+          image registry, not a residency assessment of the database.
     ci_cd_pipeline:
       does_not_do:
         - build container images
@@ -2134,6 +2323,18 @@ specification:
       incidents_attributable_to_the_image_build_gap: 2
       # Added by SD-01. Both require human sign-off before PR 2 is opened:
       # ci_cd_and_deployment_configuration_changes is on the sign-off list.
+      cdp_pipeline:
+        note: >-
+          CDP does NOT close BLK-05. Its documentation is explicit that a push
+          builds nothing; the image is built only when a deploy is dispatched.
+          A broken Dockerfile is therefore still discovered at deploy time
+          rather than at pull request — the exact gap behind both production
+          incidents. ENG-704 remains necessary.
+        partially_addresses:
+          BLK-12: >-
+            The blocking Snyk SCA gate over every dependency manifest is
+            dependency scanning the current pipeline does not have. It does not
+            cover secret scanning, SAST or the threat model.
       planned_additions:
         - { task: ENG-902, addition: spec_validation_job,     human_sign_off_required: true }
         - { task: ENG-704, addition: container_image_build,   human_sign_off_required: true, closes: BLK-05 }
@@ -2496,6 +2697,44 @@ specification:
         next import that differs by letter case recreates them.
       human_review_required: true
 
+    - timestamp: '2026-08-14'
+      contributor: claude-agent
+      role: ai_agent
+      action: spec_delta_prepared
+      delta_id: SD-04
+      requested_by: accountable_owner
+      sections: [metadata, persistence, architecture, engineering, devops_and_operations, open_questions, exceptions_and_waivers]
+      summary: >-
+        Adapt the platform to build and deploy on the Cookie Citizen Developer
+        Platform. Adds ADR-19 (one combined image, Next.js on 8080 proxying
+        /api over loopback to Nest) and ADR-20 (Secure Image Factory base
+        images), tasks ENG-1201…1210, build invariants BI-04…BI-06, the CDP
+        environment, EXC-07 for the deployment coupling, and OQ-A2-09…11.
+      source: CDP documentation, CI/CD & Build Standards, supplied as PDF and read 2026-08-14
+      topology_decision:
+        chosen: single combined image
+        chosen_by: accountable owner, in session, 2026-08-14
+        alternatives_offered: [split into two repos, API on CDP with web elsewhere, confirm with the platform team first]
+      gap_found_against_current_state:
+        - CI triggers on main; CDP triggers on dev, which does not exist
+        - four FROM lines use node:22-alpine, a public base, which SIF enforcement will reject
+        - API listens on 4000 and web on 3000; CDP probes 8080
+        - health path is /healthz; CDP probes /health
+        - no .cookie.yaml
+        - Dockerfiles live in apps/api and apps/web; CDP expects one at the repo root
+      does_not_close:
+        BLK-05: >-
+          CDP builds the image only on deploy dispatch, not on push. A broken
+          Dockerfile is still found at deploy rather than at pull request.
+      prepared_not_approved: true
+      human_review_required: true
+      human_sign_off_required: [hosting_platform_or_residency_affecting_changes, ci_cd_and_deployment_configuration_changes]
+      ratification_required_from: accountable_owner
+      note: >-
+        SD-04 does NOT close ADR-12. CDP is a third candidate alongside Azure
+        and Railway; which of them the platform settles on remains the owner's
+        decision, and ENG-1210 exists to record it.
+
   open_questions:
     - { id: OQ-01,    question: 'Who is accountable for this platform in production?',                                              blocks: [BLK-07] }
     - { id: OQ-02,    question: 'Is Railway an acceptable long-term host, or is Azure still the target?',                            blocks: [BLK-04] }
@@ -2561,6 +2800,35 @@ specification:
         Normalising ISBN-10 to ISBN-13 is a real transformation with a real
         error rate and should not be adopted speculatively.
       status: open
+    - id: OQ-A2-09
+      question: >-
+        What is the SIF registry reference and tag for the Node.js base image?
+      raised_by: SD-04
+      blocks: [ENG-1205]
+      note: >-
+        Not published in the CDP documentation, which says to ask the platform
+        team or an agent to look it up. The portal is blocked by this
+        environment's network egress policy, so it could not be retrieved here.
+      status: open
+    - id: OQ-A2-10
+      question: >-
+        Does CDP support two registered apps against one repository? If it
+        does, the monorepo could keep two images and ADR-19 would be
+        unnecessary.
+      raised_by: SD-04
+      note: >-
+        Could not be verified — the portal is unreachable from the build
+        environment. The owner chose the combined image without waiting for
+        this answer; if the answer turns out to be yes, ADR-19 is worth
+        revisiting before the coupling becomes entrenched.
+      status: open
+    - id: OQ-A2-11
+      question: >-
+        With CDP triggering on `dev` and our trunk being `main`, which branch is
+        reviewed and which is deployed?
+      raised_by: SD-04
+      blocks: [ENG-1207, ENG-905]
+      status: open
 
   exceptions_and_waivers:
     - { id: EXC-01, exception: 'No feature flags for user-visible change',                     guardrail: use_feature_flags_for_user_visible_changes, status: candidate_not_approved, inherited_from: OCT-001 }
@@ -2603,6 +2871,25 @@ specification:
       status: candidate_not_approved
       raised_by: ENG-1104 implementation
       task: ENG-1104
+    - id: EXC-07
+      exception: >-
+        The CDP image couples two independently deployable surfaces — a web
+        change redeploys the API and vice versa.
+      guardrail: independent_deployability_of_web_and_api
+      rationale: >-
+        CDP is one app per repo and one image. The alternative was splitting
+        the monorepo, which would require publishing or vendoring the shared
+        services/* and packages/* workspaces. The accountable owner chose the
+        combined image on 2026-08-14.
+      residual_risk: >-
+        A single point of failure for both surfaces, and a larger blast radius
+        for every release. ADR-01's domain separation is unaffected; only
+        deployment topology is coupled.
+      revisit_if: OQ-A2-10 turns out to allow two CDP apps against one repo
+      scope: CDP deployment only. Does not apply to Railway or local development.
+      status: candidate_not_approved
+      raised_by: SD-04
+      adr: ADR-19
 
 review_gate_defaults:
   portfolio_reuse_review:      { required: true, required_before: candidate,     blocks_if_incomplete: true }
