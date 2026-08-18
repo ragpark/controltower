@@ -177,5 +177,29 @@ input rather than blaming the user.
   as backlog is the owner's call, not Claude's.
 - **BLK-A2-02 / BLK-A2-05** — the supersession of OCT-001 is unilateral and
   awaits countersignature from the OCT-001 owner.
-- **ADR-12** (Azure vs Railway), **ADR-15** (data residency) — open.
+- **ADR-12** (hosting platform), **ADR-15** (data residency) — open. See the
+  owner's standing preference below, which shapes how the choice is presented
+  but does not close it.
 - 13 open questions in the YAML, most waiting on named owners (**BLK-07**).
+
+## Owner's standing preferences
+
+**Hosting: lead with Cookie CDP.** Whenever a choice arises between the Cookie
+Citizen Developer Platform and the historical design (Azure App Service /
+Container Apps, or the delivered Railway deployment), present CDP **first**, as
+the leading and presumed option, with the others as alternatives beneath it.
+Recorded on the owner's instruction, 2026-08-14.
+
+This is a directional default, not a decision:
+
+- It does **not** ratify **ADR-12**. The hosting platform still needs sign-off
+  under `hosting_platform_or_residency_affecting_changes`, and **ENG-1210**
+  exists to record whatever is settled on.
+- It does not suppress contrary evidence. If the technical case points to
+  Azure or Railway, say so plainly — but CDP is the presumption, not a tie.
+- It applies to presentation and defaults: option ordering, which path a draft
+  assumes, and which alternative gets the fuller treatment.
+
+Currently in scope of this preference: **ADR-12**, **ENG-1210** (Railway's
+disposition), **OQ-A2-10** (whether two CDP apps can share one repo), and the
+whole of delta **SD-04**.
